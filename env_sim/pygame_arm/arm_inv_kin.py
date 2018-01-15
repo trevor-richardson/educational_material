@@ -138,8 +138,6 @@ def inv_kin_2arm(x, y, l0, l1):
     inside = round(inside, 5)
 
     if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or x == 0 or y == 0:
-        print("impossible to reach", l0, l1, x, y, abs(((x**2 + y**2) - l0**2 - l1**2)/(2*l0*l1)))
-        print ((x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1))
         return -1, -1
     else:
         theta_1 = (math.acos(inside))
@@ -150,7 +148,6 @@ def inv_kin_2arm(x, y, l0, l1):
         if b == 0:
             print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
             return -1, -1
-
 
         theta_0 = np.arctan2(a, b)
 
@@ -165,7 +162,6 @@ def convert_normal_angle(t_0, t_1):
     return t_0, t_1
 
 def calc_origin(theta, hyp):
-    # print(theta * 57.2958, hyp, "input to this system")
     if theta < (np.pi/2.0):
         x = hyp * math.cos(theta)
         y = hyp * math.sin(theta)
@@ -174,18 +170,21 @@ def calc_origin(theta, hyp):
         theta = np.pi - theta
         x = -1 * (hyp * math.cos(theta))
         y = hyp * math.sin(theta)
-
     elif theta < (3/2.0) * np.pi:
         theta = (3/2.0) * np.pi - theta
         y = -1 * (hyp * math.cos(theta))
         x =  -1 * hyp * math.sin(theta)
-
     else:
         theta = 2 * np.pi - theta
         x = (hyp * math.cos(theta))
         y = -1 * hyp * math.sin(theta)
 
     return int(-y), int(-x)
+
+def return_ordered(seq):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
 
 sprites = []
 num_steps_0 = 0
@@ -196,39 +195,37 @@ origin_1 = (0, 0)
 rotate_rte_0 = 0
 rotate_rte_1 = 0
 
-#get the cur_radians_1 and cur_radians_0 for the start
 mouse_bool = False
 while 1:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 
-    if mouse_state[0] == 1 and not mouse_bool:
+    #check if mouse is pressed
+    if mouse_state[0] == 1:
         sprites.append(pygame.mouse.get_pos())
+        sprites = return_ordered(sprites)
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[-1][0] - 375.0, sprites[-1][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
-        theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+    #calc new inv kinematic angle
+    if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
 
-        if (sprites[-1][0] >=0):
-            theta_add = (theta_1 + theta_0)% (2 * np.pi)
-        else:
-            theta_add = (theta_1 - theta_0)% (2 * np.pi)
-
+        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
 
         if theta_1 == -1 and theta_0 == -1:
             print("Impossible to move end effector to desired location")
+            num_steps_0 = 0
+            num_steps_1 = 0
+            sprites = sprites[:-1]
         else:
+            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+
+            if (sprites[-1][0] >=0):
+                theta_add = (theta_1 + theta_0)% (2 * np.pi)
+            else:
+                theta_add = (theta_1 - theta_0)% (2 * np.pi)
+
             num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
-
             num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
-            mouse_bool = True
 
-        #make the list of sprites for mouse locations a set and eliminate duplicates
-        newsprites = set(sprites)
-        sprites = list(newsprites)
-
-
-
-    #get location of interest --
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
         fa_image, fa_rect = forearm.rotate(0.0)
@@ -245,7 +242,8 @@ while 1:
     else:
         fa_image, fa_rect = forearm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
-        mouse_bool = False
+        if len(sprites) > 0:
+            sprites.pop(0)
 
     #i didnt write this
     joints_x = np.cumsum([0,
@@ -260,8 +258,6 @@ while 1:
 
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], forearm)
-
-
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
@@ -296,8 +292,7 @@ while 1:
     pygame.draw.circle(display, arm_color, joints[1], 7)
 
     for sprite in sprites:
-        pygame.draw.circle(display, red, sprite, 5)
-
+        pygame.draw.circle(display, red, sprite, 4)
 
     # check for quit
     for event in pygame.event.get():

@@ -11,7 +11,7 @@ from torch.autograd import Variable
 import numpy as np
 
 
-#global variables
+'''global variables'''
 batch_sz = 64
 epochs = 100
 learning_rate = .0001
@@ -34,7 +34,7 @@ test_loader = torch.utils.data.DataLoader(
     datasets.MNIST('../data', train=False, transform=transforms.Compose([
                        transforms.ToTensor(),
                    ])),
-    batch_size=batch_sz, shuffle=False, **kwargs, drop_last=True)
+    batch_size=batch_sz, shuffle=True, **kwargs, drop_last=True)
 
 
 '''Model creation'''
