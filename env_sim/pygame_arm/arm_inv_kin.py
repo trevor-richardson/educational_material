@@ -7,10 +7,6 @@ import pygame
 import sys
 import math
 
-# origin is the top left of the simulator
-# y becomes bigger as one moves right
-# x becomes bigger as you move down
-
 class ArmPart:
     """
     A class for storing relevant arm segment information.
@@ -38,6 +34,7 @@ class ArmPart:
         return image, rect
 
 black = (0, 0, 0)
+red = (255, 0, 0)
 white = (255, 255, 255)
 arm_color = (50, 50, 50, 200) # fourth value specifies transparency
 
@@ -73,7 +70,6 @@ def transform_lines(rect, base, arm_part):
 
 
 def calc_rot(rad_current, rad_desired):
-    # print(rad_current, rad_desired, "radddssss") #here is the problem
     #this is how many radians I need to move in total
     desired_transform = rad_desired - rad_current
     #I want to move one degree per frame at a frame rate of 40
@@ -102,7 +98,6 @@ def calc_rot(rad_current, rad_desired):
 
 
 def print_angle(x, y, origin):
-
     if x <= origin[0] and y <= origin[1]:
         opposite = origin[1] - y
         adjacent = origin[0] - x
@@ -153,7 +148,6 @@ def inv_kin_2arm(x, y, l0, l1):
         b = x * (l1 * math.cos(theta_1) + l0) + y * l1 * math.sin(theta_1)
 
         if b == 0:
-            print("two ")
             print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
             return -1, -1
 
@@ -169,8 +163,6 @@ def convert_normal_angle(t_0, t_1):
         t_1 = 2* np.pi + t_1
 
     return t_0, t_1
-
-
 
 def calc_origin(theta, hyp):
     # print(theta * 57.2958, hyp, "input to this system")
@@ -212,32 +204,29 @@ while 1:
 
     if mouse_state[0] == 1 and not mouse_bool:
         sprites.append(pygame.mouse.get_pos())
-        print(sprites[-1], forearm.length, upperarm.length)
-        # print(sprites[-1] , "mouse", sprites[-1][0] - 375.0, sprites[-1][1] - 375.0, forearm.length)
 
         theta_0, theta_1 = inv_kin_2arm(sprites[-1][0] - 375.0, sprites[-1][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
-        # print(theta_0 * 57.2958, theta_1 * 57.2958)
-        # theta_0 = -theta_0
-        # update_ik_solution(theta_0, theta_1)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+
         if (sprites[-1][0] >=0):
             theta_add = (theta_1 + theta_0)% (2 * np.pi)
         else:
             theta_add = (theta_1 - theta_0)% (2 * np.pi)
-        # print(theta_0 * 57.2958, (theta_1) * 57.2958, (theta_1 + theta_0) * 57.2958, theta_add * 57.2958, "converted to normal angle")
-
 
 
         if theta_1 == -1 and theta_0 == -1:
-            print("this is impossible bro")
+            print("Impossible to move end effector to desired location")
         else:
             num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
-            # print(num_steps_0)
 
-            #calc the rotation for the lower arm
             num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
-            # print(num_steps_0)
             mouse_bool = True
+
+        #make the list of sprites for mouse locations a set and eliminate duplicates
+        newsprites = set(sprites)
+        sprites = list(newsprites)
+
+
 
     #get location of interest --
     if num_steps_0 > 0 and num_steps_1 == 0:
@@ -258,7 +247,7 @@ while 1:
         ua_image, ua_rect = upperarm.rotate(0.000)
         mouse_bool = False
 
-
+    #i didnt write this
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rotation),
                           forearm.scale * np.cos(forearm.rotation)
@@ -289,15 +278,14 @@ while 1:
 
     lfa_rect = line_fa.get_rect()
     transform_lines(lfa_rect, joints[1], forearm)
+    #didnt write this
 
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (375, 375))
-
-    '''calc origin about 2nd axis'''
-
 
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
+    #i didnt write this
     display.blit(line_ua, lua_rect)
     display.blit(line_fa, lfa_rect)
 
@@ -306,6 +294,9 @@ while 1:
     pygame.draw.circle(display, arm_color, joints[0], 12)
     pygame.draw.circle(display, black, joints[1], 20)
     pygame.draw.circle(display, arm_color, joints[1], 7)
+
+    for sprite in sprites:
+        pygame.draw.circle(display, red, sprite, 5)
 
 
     # check for quit
