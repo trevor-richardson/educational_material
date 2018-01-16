@@ -63,7 +63,7 @@ rotate_rte_1 = 0
 
 mouse_bool = False
 save_data_bool = True
-save_iterator = 1
+save_iterator = 2
 
 
 def save_data(data, label, iteration):
@@ -215,7 +215,7 @@ while 1:
             else:
                 training_label.append([theta_0, theta_1])
 
-            if (sprites[-1][0] >=0):
+            if (sprites[0][0] >=0):
                 theta_add = (theta_1 + theta_0)% (2 * np.pi)
             else:
                 theta_add = (theta_1 - theta_0)% (2 * np.pi)
