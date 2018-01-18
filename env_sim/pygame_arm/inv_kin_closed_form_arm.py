@@ -41,8 +41,6 @@ lowerarm = ArmRect('lowerarm.png', scale=.8)
 
 line_width = 12
 
-training_data = []
-training_label = []
 
 line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
 line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
@@ -62,9 +60,6 @@ rotate_rte_0 = 0
 rotate_rte_1 = 0
 
 mouse_bool = False
-save_data_bool = True
-save_iterator = 2
-
 
 def save_data(data, label, iteration):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
@@ -208,12 +203,7 @@ while 1:
             num_steps_1 = 0
         else:
             theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-
-            if len(training_label) > 0:
-                if [theta_0, theta_1] != training_label[-1]:
-                    training_label.append([theta_0, theta_1])
-            else:
-                training_label.append([theta_0, theta_1])
+            ''' Here is where I collected theta from before'''
 
             if (sprites[0][0] >=0):
                 theta_add = (theta_1 + theta_0)% (2 * np.pi)
@@ -244,12 +234,7 @@ while 1:
         ua_image, ua_rect = upperarm.rotate(0.000)
 
         if len(sprites) > 0:
-            if theta_0 == -1 and theta_1 == -1:
-                #If this is a position I cant reach just pop
-                sprites.pop(0)
-            else:
-                training_data.append(sprites[0])
-                sprites.pop(0)
+            sprites.pop(0)
 
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rot_angle),
@@ -299,11 +284,6 @@ while 1:
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
             pygame.quit()
-            data = np.asarray(training_data)
-            label = np.asarray(training_label)
-            print(data.shape)
-            save_data(data, label, save_iterator)
-
             sys.exit()
 
     pygame.display.update()

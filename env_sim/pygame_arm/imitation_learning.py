@@ -1,7 +1,3 @@
-'''
-This simulation executes a trained neural network that approximates the
-closed form solution given by 2 axis inv kin
-'''
 import numpy as np
 import pygame
 import pygame.locals
@@ -10,41 +6,6 @@ import numpy as np
 import pygame
 import sys
 import os
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable
-'''My simple feed forward neural network model'''
-class FullyConnectedNetwork(nn.Module):
-    def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
-        super(FullyConnectedNetwork, self).__init__()
-
-        self.h_0 = nn.Linear(input_dim, num_hidden_neurons[0])
-        self.h_1 = nn.Linear(num_hidden_neurons[0], num_hidden_neurons[1])
-        self.h_2 = nn.Linear(num_hidden_neurons[1], num_hidden_neurons[2])
-        self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
-
-        self.drop = nn.Dropout(dropout_rte)
-
-
-    def forward(self, x):
-        x = self.drop(x)
-
-        out_0 = F.tanh(self.h_0(x))
-        out_0 = self.drop(out_0)
-
-        out_1 = F.tanh(self.h_1(out_0))
-        out_1 = self.drop(out_1)
-
-        out_2 = F.tanh(self.h_2(out_1))
-        out_2 = self.drop(out_2)
-
-        out = self.h_3(out_2)
-        return out
-
-
 
 ''' This class describes the png rect that I use to visualize in pygame '''
 class ArmRect:
@@ -61,17 +22,6 @@ class ArmRect:
         rect.center = (0, 0)
 
         return image, rect
-
-def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/mysavedmodel.pth'))
-
-input_shape = 2
-output_shape = 2
-drop_rte = 0
-hidden_neurons = [50, 40, 20, output_shape]
-model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
-load_model(model)
-model.eval()
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -91,8 +41,6 @@ lowerarm = ArmRect('lowerarm.png', scale=.8)
 
 line_width = 12
 
-training_data = []
-training_label = []
 
 line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
 line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
@@ -112,9 +60,7 @@ rotate_rte_0 = 0
 rotate_rte_1 = 0
 
 mouse_bool = False
-save_data_bool = True
-save_iterator = 2
-
+mouse_state_bool = True
 
 def save_data(data, label, iteration):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
@@ -134,25 +80,29 @@ def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
     desired_transform = rad_desired - rad_current
     oneeighty = 180/57.2958
+
+
     #This is to make sure the direction I am turning is the most efficient way to turn
     if desired_transform < 0:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = 1 * (1 / (57.2958)) #1 degree per frame
+            rotation_rte = 1 #1 degree per frame
+            print("hey 0")
         else:
-            rotation_rte = (-1 / (57.2958)) #1 degree per frame
+            rotation_rte = -1 #1 degree per frame
+            print("hey 1")
     else:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = (-1/ (57.2958))
+            rotation_rte = -1
+            print("hey 3")
         else:
-            rotation_rte = 1 * (1 / (57.2958)) #1 degree per frame
+            rotation_rte = 1 #1 degree per frame
+            print("hey4 ")
 
-    #Number of steps moving at the specified rate
     desired_transform = (abs(desired_transform))
     if desired_transform > (np.pi):
         desired_transform = 2*np.pi - desired_transform
 
-    num_steps = desired_transform / rotation_rte
-    return int(abs(num_steps)), rotation_rte
+    return 1, rotation_rte * desired_transform
 
 def print_angle(x, y, origin):
     if x <= origin[0] and y <= origin[1]:
@@ -193,7 +143,6 @@ def inv_kin_2arm(x, y, l0, l1):
         return -1, -1
     else:
         theta_1 = (np.arccos(inside))
-
         a = y * (l1 * np.cos(theta_1) + l0) - x * l1 * np.sin(theta_1)
         b = x * (l1 * np.cos(theta_1) + l0) + y * l1 * np.sin(theta_1)
 
@@ -217,17 +166,14 @@ def calc_origin(theta, hyp):
     if theta < (np.pi/2.0):
         x = hyp * np.cos(theta)
         y = hyp * np.sin(theta)
-
     elif theta < np.pi:
         theta = np.pi - theta
         x = -1 * (hyp * np.cos(theta))
         y = hyp * np.sin(theta)
-
     elif theta < (3/2.0) * np.pi:
         theta = (3/2.0) * np.pi - theta
         y = -1 * (hyp * np.cos(theta))
         x =  -1 * hyp * np.sin(theta)
-
     else:
         theta = 2 * np.pi - theta
         x = (hyp * np.cos(theta))
@@ -245,27 +191,28 @@ while 1:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 
-    if mouse_state[0] == 1:
+
+    if mouse_state[0] == 1 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
         sprites.append(pygame.mouse.get_pos())
         sprites = return_ordered(sprites)
 
-    if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
-
         theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
-        theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-
-        input_to_model = torch.from_numpy(np.asarray([sprites[0][0] - 375.0, sprites[0][1] - 375.0])).float()
-        theta_0, theta_1 = model.forward(input_to_model)
-        theta_0 = theta_0.data[0]
-        theta_1 = theta_1.data[0]
-
-        if (sprites[0][0] >=0):
-            theta_add = (theta_1 + theta_0)% (2 * np.pi)
+        if theta_1 == -1 and theta_0 == -1:
+            print("Impossible to move end effector to desired location")
+            num_steps_0 = 0
+            num_steps_1 = 0
         else:
-            theta_add = (theta_1 - theta_0)% (2 * np.pi)
+            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+            ''' Here is where I collected theta from before'''
+            if (sprites[0][0] >=0):
+                theta_add = (theta_1 + theta_0)% (2 * np.pi)
+            else:
+                theta_add = (theta_1 - theta_0)% (2 * np.pi)
 
-        num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
-        num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
+            num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
+            num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
+
+        mouse_state_bool = False
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
@@ -286,14 +233,9 @@ while 1:
     else:
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
-
+        mouse_state_bool = True
         if len(sprites) > 0:
-            if theta_0 == -1 and theta_1 == -1:
-                #If this is a position I cant reach just pop
-                sprites.pop(0)
-            else:
-                training_data.append(sprites[0])
-                sprites.pop(0)
+            sprites.pop(0)
 
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rot_angle),
@@ -343,7 +285,6 @@ while 1:
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
             pygame.quit()
-
             sys.exit()
 
     pygame.display.update()

@@ -1,0 +1,7 @@
+
+
+1) clean up code for inv_kin_closed_form_arm -- do this last
+2) build data generator for training algorithm (Done)
+3) create two training methods for two different classification or clustering and regression
+4) Finish the inv_kin_approx_closed_form_solution
+5) Build an imitation learning simulation (version 1 -- bugs)
