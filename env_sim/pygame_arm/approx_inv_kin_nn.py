@@ -63,11 +63,11 @@ class ArmRect:
         return image, rect
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/mysavedmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
 
 input_shape = 2
 output_shape = 2
-drop_rte = 0
+drop_rte = 0.1
 hidden_neurons = [50, 40, 20, output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 load_model(model)

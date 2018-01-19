@@ -86,17 +86,13 @@ def calc_rot(rad_current, rad_desired):
     if desired_transform < 0:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
             rotation_rte = 1 #1 degree per frame
-            print("hey 0")
         else:
             rotation_rte = -1 #1 degree per frame
-            print("hey 1")
     else:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
             rotation_rte = -1
-            print("hey 3")
         else:
             rotation_rte = 1 #1 degree per frame
-            print("hey4 ")
 
     desired_transform = (abs(desired_transform))
     if desired_transform > (np.pi):

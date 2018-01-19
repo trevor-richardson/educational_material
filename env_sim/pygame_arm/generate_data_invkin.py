@@ -5,10 +5,10 @@ import os
 parser = argparse.ArgumentParser(description='Input for generating data points to be learned from')
 
 parser.add_argument('--num_data_train', type=int, default=20000, metavar='N',
-                    help='Input batch size for training (default: 10000)')
+                    help='Input batch size for training (default: 25000)')
 
 parser.add_argument('--num_data_test', type=int, default=5000, metavar='N',
-                    help='Input batch size for training (default: 1000)')
+                    help='Input batch size for training (default: 3000)')
 
 args = parser.parse_args()
 

@@ -13,16 +13,15 @@ import os
 #network model
 '''global variables'''
 batch_sz = 1024
-epochs = 10000
+epochs = 5000
 learning_rate = .0001
 input_shape = 2
 output_shape = 2
-drop_rte = 0.0
+drop_rte = 0.1
 hidden_neurons = [50, 40, 20, output_shape]
 
 #load the numpy array
 dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-
 
 '''Simple Regression FCN Model'''
 class FullyConnectedNetwork(nn.Module):
@@ -121,7 +120,7 @@ def test_model(data, label):
 
     print('\nTest set: Average loss: {:.4f}'.format(
         test_loss/test_steps))
-    return test_loss
+    return (test_loss/test_steps)
 
 '''Create model'''
 if torch.cuda.is_available():
@@ -133,22 +132,24 @@ else:
 '''Load data'''
 train = np.load(dir_path + '/data/train.npy')
 train = train.astype('float64')
-np.random.shuffle(train)
 
-data = train[:,0]
-label = train[:,1]
 
 test = np.load(dir_path + '/data/test.npy')
 test = test.astype('float64')
-np.random.shuffle(test)
 
-test_data = test[:,0]
-test_label = test[:,1]
 
 best_loss = float(sys.maxsize)
 
 '''Train and Test Our Model'''
 for epoch in range(epochs):
+    #shuffle data
+    np.random.shuffle(train)
+    data = train[:,0]
+    label = train[:,1]
+    np.random.shuffle(test)
+    test_data = test[:,0]
+    test_label = test[:,1]
+
     train_model(epoch, data, label)
     if epoch % 1 == 0 and epoch != 0:
         current_loss = test_model(test_data, test_label)
@@ -158,3 +159,4 @@ for epoch in range(epochs):
 
 
 test_model(test_data, test_label)
+print("best loss", best_loss)
