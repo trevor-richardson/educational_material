@@ -3,11 +3,21 @@ This simulation executes a trained neural network that approximates the
 closed form solution given by 2 axis inv kin
 '''
 import numpy as np
+import matplotlib
+import matplotlib.backends.backend_agg as agg
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import pylab
+import warnings
+warnings.filterwarnings("ignore")
+
 import pygame
 import pygame.locals
 
 import sys
 import os
+
+
 
 import torch
 import torch.nn as nn
@@ -25,7 +35,6 @@ class FullyConnectedNetwork(nn.Module):
         self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
 
         self.drop = nn.Dropout(dropout_rte)
-
 
     def forward(self, x):
         x = self.drop(x)
@@ -63,13 +72,48 @@ class ArmRect:
 def load_model(model):
     return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
 
+
+def make_uncertainty_plots(h, h_2, p, p2):
+    fit = stats.norm.pdf(h, np.mean(h), np.std(h))  #this is a fitting indeed
+    fit_2 = stats.norm.pdf(h_2, np.mean(h_2), np.std(h_2))
+
+    x = plt.figure(1)
+    plt.subplot(211)
+    plt.title("Theta 1")
+    plt.plot(h,fit,'-o')
+    plt.hist(h,normed=True)
+    plt.axvline(x=p, lw=4)
+    plt.xlabel("Radians")
+    plt.subplot(212)
+    plt.title("Theta 2")
+    plt.plot(h_2,fit_2,'-o')
+    plt.hist(h_2,normed=True)
+    plt.axvline(x=p2, lw=4)
+    plt.xlabel("Radians")
+    plt.tight_layout()
+
+    ax = plt.gca()
+
+    canvas = agg.FigureCanvasAgg(x)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    raw_data = renderer.tostring_rgb()
+
+    size = canvas.get_width_height()
+    plot_surface = pygame.image.fromstring(raw_data, size, "RGB")
+
+    return plot_surface
+
+learning_rate = .0001
+sample_size_drop = 60
 input_shape = 2
 output_shape = 2
 drop_rte = 0.1
 hidden_neurons = [50, 40, 20, output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
 load_model(model)
-model.eval()
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -81,8 +125,8 @@ pygame.init()
 
 width = 750
 height = 750
-distance_for_histogram = 250
-display = pygame.display.set_mode((width, height + distance_for_histogram))
+distance_for_histogram = 700
+display = pygame.display.set_mode((width + distance_for_histogram, height))
 frame_clock = pygame.time.Clock()
 
 upperarm = ArmRect('upperarm.png', scale=.7)
@@ -110,10 +154,12 @@ origin_1 = (0, 0)
 rotate_rte_0 = 0
 rotate_rte_1 = 0
 
-mouse_bool = False
+mouse_state_bool = True
 save_data_bool = True
 save_iterator = 2
 
+lst_theta0 = []
+lst_theta1 = []
 
 def save_data(data, label, iteration):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
@@ -248,13 +294,36 @@ while 1:
         sprites.append(pygame.mouse.get_pos())
         sprites = return_ordered(sprites)
 
-    if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
+    if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
 
         theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         input_to_model = torch.from_numpy(np.asarray([sprites[0][0] - 375.0, sprites[0][1] - 375.0])).float()
+
+        #collect information about stochastic forward pass
+        model.train()
+
+        for iterator in range(sample_size_drop):
+            theta_0, theta_1 = model.forward(input_to_model)
+            lst_theta0.append(theta_0.data[0])
+            lst_theta1.append(theta_1.data[0])
+        optimizer.zero_grad() #dont want to store gradients
+
+        if 'uncertainty_graphs' in locals():
+            plt.clf()
+
+        uncertainty_graphs = make_uncertainty_plots(sorted(lst_theta0[:-1]), sorted(lst_theta1[:-1]), lst_theta0[-1], lst_theta1[-1])
+        del(lst_theta0)
+        del(lst_theta1)
+        lst_theta0 = []
+        lst_theta1 = []
+
+        model.eval()
         theta_0, theta_1 = model.forward(input_to_model)
+        lst_theta0.append(theta_0.data[0])
+        lst_theta1.append(theta_1.data[0])
+
         theta_0 = theta_0.data[0]
         theta_1 = theta_1.data[0]
 
@@ -265,6 +334,7 @@ while 1:
 
         num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
         num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
+        mouse_state_bool = False
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
@@ -285,6 +355,7 @@ while 1:
     else:
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
+        mouse_state_bool = True
 
         if len(sprites) > 0:
             if theta_0 == -1 and theta_1 == -1:
@@ -305,6 +376,9 @@ while 1:
 
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
+
+    if 'uncertainty_graphs' in locals():
+        display.blit(uncertainty_graphs, (800,150))
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
