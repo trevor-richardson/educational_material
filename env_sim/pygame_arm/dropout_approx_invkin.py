@@ -74,6 +74,7 @@ def load_model(model):
 
 
 def make_uncertainty_plots(h, h_2, p, p2):
+    # print(min(h), min(h_2), max(h), max(h_2))
     fit = stats.norm.pdf(h, np.mean(h), np.std(h))  #this is a fitting indeed
     fit_2 = stats.norm.pdf(h_2, np.mean(h_2), np.std(h_2))
 
@@ -83,12 +84,16 @@ def make_uncertainty_plots(h, h_2, p, p2):
     plt.plot(h,fit,'-o')
     plt.hist(h,normed=True)
     plt.axvline(x=p, lw=4)
+    plt.yticks([])
+    plt.xlim((0,6.5))
     plt.xlabel("Radians")
     plt.subplot(212)
     plt.title("Theta 2")
     plt.plot(h_2,fit_2,'-o')
     plt.hist(h_2,normed=True)
     plt.axvline(x=p2, lw=4)
+    plt.yticks([])
+    plt.xlim((0,6.5))
     plt.xlabel("Radians")
     plt.tight_layout()
 
@@ -103,6 +108,7 @@ def make_uncertainty_plots(h, h_2, p, p2):
     plot_surface = pygame.image.fromstring(raw_data, size, "RGB")
 
     return plot_surface
+
 
 learning_rate = .0001
 sample_size_drop = 60
