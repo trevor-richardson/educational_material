@@ -61,6 +61,9 @@ rotate_rte_1 = 0
 
 mouse_bool = False
 mouse_state_bool = True
+grabbed_endeff_bool = False #This only becomes True when the user grabs the location near the endeff
+goal_exists_bool = False #Is there a current goal
+reached_goal = False
 
 def save_data(data, label, iteration):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
@@ -136,15 +139,15 @@ def inv_kin_2arm(x, y, l0, l1):
     inside = round(inside, 5)
 
     if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or x == 0 or y == 0:
-        return -1, -1
+        return -20, -20
     else:
         theta_1 = (np.arccos(inside))
         a = y * (l1 * np.cos(theta_1) + l0) - x * l1 * np.sin(theta_1)
         b = x * (l1 * np.cos(theta_1) + l0) + y * l1 * np.sin(theta_1)
 
         if b == 0:
-            print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
-            return -1, -1
+            print("impossible to reach", l0, l1, x, y, abs(((x**2 + y**2) - l0**2 - l1**2)/(2*l0*l1)))
+            return -20, -20
 
         theta_0 = np.arctan2(a, b)
 
@@ -177,23 +180,68 @@ def calc_origin(theta, hyp):
 
     return int(-y), int(-x)
 
+
+''' Generate New Desired Location '''
+def generate_goal_pos(width, height, l0, l1):
+    feasible_solution = False
+    while not feasible_solution:
+        goal_pos = (int(np.random.uniform(0, width)), int(np.random.uniform(0, height)))
+        theta_1, theta_0 = inv_kin_2arm(goal_pos[0] - 375, goal_pos[1] - 375, l0, l1)
+        if theta_1 == -20 and theta_0 == -20:
+            feasible_solution = False
+        else:
+            feasible_solution = True
+
+    return goal_pos
+
+
+''' Check if in goal circle '''
+def check_goal_status(eff_pos, goal_pos, radius):
+
+    if ((eff_pos[0] - goal_pos[0])**2 + (eff_pos[1] - goal_pos[1])**2 < radius**2 ):
+        return True
+    else:
+        return False
+
+''' Check if I grabbed end effector '''
+def check_end_eff_pos(mouse_pos, eff_pos, radius):
+    if ((eff_pos[0] - mouse_pos[0])**2 + (eff_pos[1] - mouse_pos[1])**2 < radius**2):
+        return True
+    else:
+        return False
+
 def return_ordered(seq):
     seen = set()
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
 
-
 while 1:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 
+    #check if I have a current goal -- not generate goal -- true check if I have met goal position
+    if goal_exists_bool:
+        reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -375, goal_pos[1]-375), 7) #seven represents the radius I accept as acceptable to goal point
+        if reached_goal:
+            goal_exists_bool = False
 
-    if mouse_state[0] == 1 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
+    if not goal_exists_bool:
+        goal_pos = generate_goal_pos(width, height, 179, 149)
+        goal_exists_bool = True
+
+    if mouse_state[0]  == 0:
+        grabbed_endeff_bool=False
+
+    if mouse_state[0] == 1 and not grabbed_endeff_bool:
+        grabbed_endeff_bool = check_end_eff_pos((pygame.mouse.get_pos()[0]-375, pygame.mouse.get_pos()[1]-375 ), current_endeff_pos, 5)
+        print(current_endeff_pos)
+
+    if mouse_state[0] == 1 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool and grabbed_endeff_bool:
         sprites.append(pygame.mouse.get_pos())
         sprites = return_ordered(sprites)
 
         theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
-        if theta_1 == -1 and theta_0 == -1:
+        if theta_1 == -20 and theta_0 == -20:
             print("Impossible to move end effector to desired location")
             num_steps_0 = 0
             num_steps_1 = 0
@@ -242,6 +290,8 @@ while 1:
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
+    current_endeff_pos = (joints[2][0]-375, joints[2][1]-375)
+
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
 
@@ -268,14 +318,14 @@ while 1:
     display.blit(line_ua, lua_rect)
     display.blit(line_fa, lfa_rect)
 
-    # draw circles at joints for pretty
+    # make my joints more pronounced
     pygame.draw.circle(display, black, joints[0], 24)
     pygame.draw.circle(display, gold, joints[0], 12)
     pygame.draw.circle(display, black, joints[1], 16)
     pygame.draw.circle(display, gold, joints[1], 7)
 
-    for sprite in sprites:
-        pygame.draw.circle(display, red, sprite, 4)
+    # draw circle at goal position
+    pygame.draw.circle(display, red, goal_pos, 10)
 
     # check for quit
     for event in pygame.event.get():
@@ -285,3 +335,4 @@ while 1:
 
     pygame.display.update()
     frame_clock.tick(30)
+    first_pass = False

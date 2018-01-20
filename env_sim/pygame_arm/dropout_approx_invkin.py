@@ -74,7 +74,6 @@ def load_model(model):
 
 
 def make_uncertainty_plots(h, h_2, p, p2):
-    # print(min(h), min(h_2), max(h), max(h_2))
     fit = stats.norm.pdf(h, np.mean(h), np.std(h))  #this is a fitting indeed
     fit_2 = stats.norm.pdf(h_2, np.mean(h_2), np.std(h_2))
 
