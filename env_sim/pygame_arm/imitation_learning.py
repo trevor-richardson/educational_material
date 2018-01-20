@@ -65,6 +65,9 @@ grabbed_endeff_bool = False #This only becomes True when the user grabs the loca
 goal_exists_bool = False #Is there a current goal
 reached_goal = False
 
+current_pos_lst = [] #current end effector position
+target_ja_lst = [] #traget_joint_angle
+
 def transform(rect, container, part):
     rect.center += np.asarray(container)
     rect.center += np.array([np.cos(part.rot_angle) * part.offset,
@@ -209,9 +212,6 @@ def return_ordered(seq):
     seen = set()
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
-
-current_pos_lst = [] #current end effector position
-target_ja_lst = [] #traget_joint_angle
 
 def save_data(data, name):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
