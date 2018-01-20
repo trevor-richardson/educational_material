@@ -70,7 +70,7 @@ class ArmRect:
         return image, rect
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/save_models/dropsavedmodel.pth'))
 
 
 def make_uncertainty_plots(h, h_2, p, p2):

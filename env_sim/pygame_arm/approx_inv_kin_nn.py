@@ -115,11 +115,6 @@ save_data_bool = True
 save_iterator = 2
 
 
-def save_data(data, label, iteration):
-    dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-    np.save(dir_path + '/data/data' + str(iteration), data)
-    np.save(dir_path + '/data/label' + str(iteration), label)
-
 def transform(rect, container, part):
     rect.center += np.asarray(container)
     rect.center += np.array([np.cos(part.rot_angle) * part.offset,

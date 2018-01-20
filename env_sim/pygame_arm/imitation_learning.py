@@ -65,11 +65,6 @@ grabbed_endeff_bool = False #This only becomes True when the user grabs the loca
 goal_exists_bool = False #Is there a current goal
 reached_goal = False
 
-def save_data(data, label, iteration):
-    dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-    np.save(dir_path + '/data/data' + str(iteration), data)
-    np.save(dir_path + '/data/label' + str(iteration), label)
-
 def transform(rect, container, part):
     rect.center += np.asarray(container)
     rect.center += np.array([np.cos(part.rot_angle) * part.offset,
@@ -146,7 +141,7 @@ def inv_kin_2arm(x, y, l0, l1):
         b = x * (l1 * np.cos(theta_1) + l0) + y * l1 * np.sin(theta_1)
 
         if b == 0:
-            print("impossible to reach", l0, l1, x, y, abs(((x**2 + y**2) - l0**2 - l1**2)/(2*l0*l1)))
+            print("impossible to reach")
             return -20, -20
 
         theta_0 = np.arctan2(a, b)
@@ -215,6 +210,21 @@ def return_ordered(seq):
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
 
+current_pos_lst = [] #current end effector position
+target_ja_lst = [] #traget_joint_angle
+
+def save_data(data, name):
+    dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
+    np.save(dir_path + '/data/imitation_learning/' + name, data)
+
+def create_dataset(current_pos, target_ja, goal_pos):
+    data_lst = []
+    for iterator in range(len(current_pos)):
+        data_lst.append([goal_pos, current_pos[iterator], target_ja[iterator]])
+
+    x = np.random.binomial(1, .8) #creates 0 or 1
+    save_data(np.asarray(data_lst), str(np.random.randint(1000000)))
+
 while 1:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
@@ -223,6 +233,11 @@ while 1:
     if goal_exists_bool:
         reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -375, goal_pos[1]-375), 7) #seven represents the radius I accept as acceptable to goal point
         if reached_goal:
+            create_dataset(current_pos_lst, target_ja_lst, (goal_pos[0] -375, goal_pos[1]-375))
+            del(current_pos_lst)
+            del(target_ja_lst)
+            current_pos_lst = []
+            target_ja_lst = []
             goal_exists_bool = False
 
     if not goal_exists_bool:
@@ -234,7 +249,6 @@ while 1:
 
     if mouse_state[0] == 1 and not grabbed_endeff_bool:
         grabbed_endeff_bool = check_end_eff_pos((pygame.mouse.get_pos()[0]-375, pygame.mouse.get_pos()[1]-375 ), current_endeff_pos, 5)
-        print(current_endeff_pos)
 
     if mouse_state[0] == 1 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool and grabbed_endeff_bool:
         sprites.append(pygame.mouse.get_pos())
@@ -248,6 +262,10 @@ while 1:
         else:
             theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
             ''' Here is where I collected theta from before'''
+            if grabbed_endeff_bool:
+                current_pos_lst.append(current_endeff_pos)
+                target_ja_lst.append([theta_0, theta_1])
+
             if (sprites[0][0] >=0):
                 theta_add = (theta_1 + theta_0)% (2 * np.pi)
             else:
@@ -330,6 +348,7 @@ while 1:
     # check for quit
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
+
             pygame.quit()
             sys.exit()
 

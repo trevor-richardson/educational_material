@@ -130,13 +130,12 @@ else:
     print("not using gpu acceleration")
 
 '''Load data'''
-train = np.load(dir_path + '/data/train.npy')
+train = np.load(dir_path + '/data/inv_kin_aprox/train.npy')
 train = train.astype('float64')
 
 
-test = np.load(dir_path + '/data/test.npy')
+test = np.load(dir_path + '/data/inv_kin_aprox/test.npy')
 test = test.astype('float64')
-
 
 best_loss = float(sys.maxsize)
 
@@ -156,7 +155,6 @@ for epoch in range(epochs):
         if current_loss < best_loss:
             best_loss = current_loss
             save_model(model)
-
 
 test_model(test_data, test_label)
 print("best loss", best_loss)

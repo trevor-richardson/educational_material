@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 def save_data(data, name):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-    np.save(dir_path + '/data/' + name, data)
+    np.save(dir_path + '/data/inv_kin_aprox/' + name, data)
 
 def convert_lst_np(lst):
     arr = np.asarray(lst)
