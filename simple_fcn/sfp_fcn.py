@@ -46,7 +46,6 @@ class FullyConnectedNetwork(nn.Module):
 
         self.drop = nn.Dropout(dropout_rte)
 
-
     def forward(self, x):
         x = self.drop(x)
 
@@ -62,7 +61,6 @@ class FullyConnectedNetwork(nn.Module):
 
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
 
 '''train'''
 def train(epoch):

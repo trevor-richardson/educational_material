@@ -70,7 +70,7 @@ class ArmRect:
         return image, rect
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/save_models/dropsavedmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/dropsavedmodel.pth'))
 
 
 def make_uncertainty_plots(h, h_2, p, p2):
@@ -78,6 +78,7 @@ def make_uncertainty_plots(h, h_2, p, p2):
     fit_2 = stats.norm.pdf(h_2, np.mean(h_2), np.std(h_2))
 
     x = plt.figure(1)
+    x.patch.set_facecolor('white')
     plt.subplot(211)
     plt.title("Theta 1")
     plt.plot(h,fit,'-o')
@@ -383,7 +384,7 @@ while 1:
     transform(fa_rect, joints[1], lowerarm)
 
     if 'uncertainty_graphs' in locals():
-        display.blit(uncertainty_graphs, (800,150))
+        display.blit(uncertainty_graphs, (780,130))
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)

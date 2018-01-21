@@ -61,7 +61,7 @@ class ArmRect:
         return image, rect
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/mysavedmodel.pth'))
 
 input_shape = 2
 output_shape = 2
@@ -81,8 +81,7 @@ pygame.init()
 
 width = 750
 height = 750
-distance_for_histogram = 250
-display = pygame.display.set_mode((width, height + distance_for_histogram))
+display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
 upperarm = ArmRect('upperarm.png', scale=.7)

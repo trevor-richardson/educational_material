@@ -20,7 +20,6 @@ class ArmRect:
         image = pygame.transform.rotozoom(self.contained, np.degrees(self.rot_angle), 1)
         rect = image.get_rect()
         rect.center = (0, 0)
-
         return image, rect
 
 black = (0, 0, 0)
