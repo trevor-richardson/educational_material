@@ -17,13 +17,12 @@ import pygame.locals
 import sys
 import os
 
-
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+
 '''My simple feed forward neural network model'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
@@ -51,8 +50,6 @@ class FullyConnectedNetwork(nn.Module):
         out = self.h_3(out_2)
         return out
 
-
-
 ''' This class describes the png rect that I use to visualize in pygame '''
 class ArmRect:
     def __init__(self, png, scale):
@@ -71,7 +68,6 @@ class ArmRect:
 
 def load_model(model):
     return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/dropsavedmodel.pth'))
-
 
 def make_uncertainty_plots(h, h_2, p, p2):
     fit = stats.norm.pdf(h, np.mean(h), np.std(h))  #this is a fitting indeed
@@ -109,7 +105,6 @@ def make_uncertainty_plots(h, h_2, p, p2):
 
     return plot_surface
 
-
 learning_rate = .0001
 sample_size_drop = 60
 input_shape = 2
@@ -128,6 +123,7 @@ white = (255, 255, 255)
 linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 
 pygame.init()
+pygame.display.set_caption('Estimating Neural Network Confidence Using Dropout')
 
 width = 750
 height = 750
@@ -240,7 +236,7 @@ def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
     inside = round(inside, 5)
 
-    if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or x == 0 or y == 0:
+    if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or (x == 0 and y == 0):
         return -1, -1
     else:
         theta_1 = (np.arccos(inside))

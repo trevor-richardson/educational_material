@@ -182,7 +182,7 @@ def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
     inside = round(inside, 5)
 
-    if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or x == 0 or y == 0:
+    if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or (x == 0 and y == 0):
         return -1, -1
     else:
         theta_1 = (np.arccos(inside))

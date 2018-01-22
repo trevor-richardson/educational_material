@@ -24,8 +24,10 @@ for element in lst_of_arr:
 arr_lst = []
 for element in lst_of_arr:
     difference = largest_seq - element.shape[0]
-    adder = np.concatenate((element, np.zeros((difference, 3, 2))))
-    arr_lst.append(adder)
+    element = np.concatenate((element, np.zeros((difference, 3, 2)))) #zero padding
+    # for index in range(difference):
+    #     element = np.concatenate((element, np.expand_dims(element[-1],axis=0))) #final element padding
+    arr_lst.append(element)
 
 arr = np.asarray(arr_lst)
 np.random.shuffle(arr)
@@ -51,25 +53,28 @@ test_data = np.transpose(test_data, (1, 0, 2))
 
 '''Set up model'''
 class ClassicalLSTM(nn.Module):
-    def __init__(self, input_sz, hidden0_sz, hidden1_sz, output_sz):
+    def __init__(self, input_sz, hidden0_sz, hidden1_sz, hidden2_sz, output_sz):
         super(ClassicalLSTM, self).__init__()
-        self.lstm_1 = nn.LSTMCell(input_sz, hidden0_sz)
-        self.lstm_2 = nn.LSTMCell(hidden0_sz, hidden1_sz)
-        self.fcn1 = nn.Linear(hidden1_sz, output_sz)
+        self.lstm_0 = nn.LSTMCell(input_sz, hidden0_sz)
+        self.lstm_1 = nn.LSTMCell(hidden0_sz, hidden1_sz)
+        self.lstm_2 = nn.LSTMCell(hidden1_sz, hidden2_sz)
+        self.fcn1 = nn.Linear(hidden2_sz, output_sz)
 
     def forward(self, x, states):
-        hx_0, cx_0 = self.lstm_1(x, states[0])
-        hx_1, cx_1 = self.lstm_2(hx_0, states[1])
-        x = self.fcn1(hx_1)
-        return x, [[hx_0, cx_0], [hx_1, cx_1]]
+        hx_0, cx_0 = self.lstm_0(x, states[0])
+        hx_1, cx_1 = self.lstm_1(hx_0, states[1])
+        hx_2, cx_2 = self.lstm_2(hx_1, states[2])
+        x = self.fcn1(hx_2)
+        return x, [[hx_0, cx_0], [hx_1, cx_1], [hx_2, cx_2]]
 
 input_sz = 4
-hidden0_sz = 30
+hidden0_sz = 40
 hidden1_sz = 30
+hidden2_sz = 15
 output_sz = 2
 learning_rate = .0001
 
-model = ClassicalLSTM(input_sz, hidden0_sz, hidden1_sz, output_sz)
+model = ClassicalLSTM(input_sz, hidden0_sz, hidden1_sz, hidden2_sz, output_sz)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 if torch.cuda.is_available():
@@ -106,7 +111,8 @@ def train_model(epoch):
     test_step_counter = 0
     prev0 = create_lstm_states(hidden0_sz,int(test_data.shape[1]))
     prev1 = create_lstm_states(hidden1_sz, int(test_data.shape[1]))
-    states = [prev0, prev1]
+    prev2 = create_lstm_states(hidden2_sz, int(test_data.shape[1]))
+    states = [prev0, prev1, prev2]
     train_loss = 0
 
     predicted_list = []
@@ -154,7 +160,8 @@ def test_model():
     train_step_counter = 0
     prev0 = create_lstm_states(hidden0_sz,int(train_data.shape[1] ))
     prev1 = create_lstm_states(hidden1_sz, int(train_data.shape[1]))
-    states = [prev0, prev1]
+    prev2 = create_lstm_states(hidden2_sz, int(train_data.shape[1]))
+    states = [prev0, prev1, prev2]
     test_loss = 0
     test_steps = 0
 
@@ -167,6 +174,7 @@ def test_model():
             data = Variable(torch.from_numpy(np.squeeze(train_data[step_idx:(step_idx + 1)])).float(),
                 volatile=True)
             label = Variable(torch.from_numpy(np.squeeze(train_label[step_idx:(step_idx + 1)])).float())
+
 
         output, states = model(data, states)
         test_loss += F.mse_loss(output, label).data[0] # sum up batch loss
@@ -183,9 +191,9 @@ def main():
     global train_label
     global test_data
     global test_label
-    epochs = 1000
+    epochs = 5000
     best_loss = sys.maxsize
-    
+
     for epoch in range(epochs):
         train_model(epoch)
         if epoch % 1 == 0 and epoch != 0:
