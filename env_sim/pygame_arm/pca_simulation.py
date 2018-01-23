@@ -12,21 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-
-''' This class describes the png rect that I use to visualize in pygame '''
-class ArmRect:
-    def __init__(self, png, scale):
-        self.contained = pygame.image.load(png)
-        self.scale = self.contained.get_rect()[2] * scale
-        self.offset = self.scale / 2.0
-        self.rot_angle = 0.0
-
-    def rotate(self, rotation):
-        self.rot_angle += rotation
-        image = pygame.transform.rotozoom(self.contained, np.degrees(self.rot_angle), 1)
-        rect = image.get_rect()
-        rect.center = (0, 0)
-        return image, rect
+from arm_part import ArmPart
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -37,21 +23,13 @@ linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 pygame.init()
 pygame.display.set_caption('Learning and PCA')
 
-width = 750
-height = 750
+width = 1000
+height = 1000
 display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
-upperarm = ArmRect('upperarm.png', scale=.7)
-lowerarm = ArmRect('lowerarm.png', scale=.8)
-
-line_width = 12
-
-line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
-line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
-
-line_upperarm.fill(linkage_color)
-line_lowerarm.fill(linkage_color)
+upperarm = ArmPart('upperarm.png', scale=.8)
+lowerarm = ArmPart('lowerarm.png', scale=.9)
 
 origin = (width / 2.0, height / 2.0)
 
@@ -63,15 +41,6 @@ origin_1 = (0, 0)
 rotate_rte_0 = 0
 rotate_rte_1 = 0
 
-
-def transform(rect, container, part):
-    rect.center += np.asarray(container)
-    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
-                            -np.sin(part.rot_angle) * part.offset])
-
-def transform_lines(rect, container, part):
-    transform(rect, container, part)
-    rect.center += np.array([-rect.width / 2.0, -rect.height / 2.0])
 
 def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
@@ -96,6 +65,11 @@ def calc_rot(rad_current, rad_desired):
 
     num_steps = desired_transform / rotation_rte
     return int(abs(num_steps)), rotation_rte
+
+def transform(rect, container, part):
+    rect.center += np.asarray(container)
+    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
+    -np.sin(part.rot_angle) * part.offset])
 
 def print_angle(x, y, origin):
     if x <= origin[0] and y <= origin[1]:
@@ -183,7 +157,7 @@ def calculate_pca(data, k=2):
     U,S,V = torch.svd(torch.t(data))
     return U[:,:k], data_mean[0], data_mean[1]
 
-half_circle_bool = True
+half_circle_bool = False
 current_state = 0
 trajectories_to_collect = 0 #This will collect one trajectory
 joint_data = []
@@ -196,10 +170,10 @@ while 1:
 
     if current_state == 0 and num_steps_0 == 0 and num_steps_1 == 0 and cur_radians_0 != 0:
         if half_circle_bool:
-            goal = (0, 328)
+            goal = (0, upperarm.scale + lowerarm.scale)
         else:
-            goal = (0, 30)
-        theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], 179, 149)
+            goal = (0, upperarm.scale - lowerarm.scale)
+        theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], upperarm.scale, lowerarm.scale)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         if (goal[0] >=0):
@@ -211,10 +185,10 @@ while 1:
         num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
     #current_state = 1 -- move arm to stretched out position
     if current_state == 1 and num_steps_0 == 0 and num_steps_1 == 0:
-        goal = (328, 0)
+        goal = (upperarm.scale + lowerarm.scale, 0)
         trajectories_to_collect += -1
 
-        theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], 179, 149)
+        theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], upperarm.scale, lowerarm.scale)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         if (goal[0] >=0):
@@ -227,10 +201,10 @@ while 1:
     #current_state = 2 -- move arm to starting position
     if current_state == 2 and num_steps_0 == 0 and num_steps_1 == 0:
         if half_circle_bool:
-            goal = (0, -328)
+            goal = (0, -upperarm.scale - lowerarm.scale)
         else:
-            goal = (0, 30)
-        theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], 179, 149)
+            goal = (0, upperarm.scale - lowerarm.scale)
+        theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], upperarm.scale, lowerarm.scale)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         if (goal[0] >=0):
@@ -309,29 +283,9 @@ while 1:
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-    line_ua = pygame.transform.rotozoom(line_upperarm,
-                                        np.degrees(upperarm.rot_angle), 1)
-    line_fa = pygame.transform.rotozoom(line_lowerarm,
-                                        np.degrees(lowerarm.rot_angle), 1)
-
-    lua_rect = line_ua.get_rect()
-    transform_lines(lua_rect, joints[0], upperarm)
-
-    lfa_rect = line_fa.get_rect()
-    transform_lines(lfa_rect, joints[1], lowerarm)
-
-    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (375, 375))
+    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-    #blit the lines of importance
-    display.blit(line_ua, lua_rect)
-    display.blit(line_fa, lfa_rect)
-
-    pygame.draw.circle(display, black, joints[0], 24)
-    pygame.draw.circle(display, gold, joints[0], 12)
-    pygame.draw.circle(display, black, joints[1], 16)
-    pygame.draw.circle(display, gold, joints[1], 7)
 
     if current_state != 4:
         text = basicfont.render('Collecting Data', True, (0, 0, 0), (255, 255, 255))

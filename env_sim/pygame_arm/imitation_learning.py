@@ -6,22 +6,7 @@ import numpy as np
 import pygame
 import sys
 import os
-
-''' This class describes the png rect that I use to visualize in pygame '''
-class ArmRect:
-    def __init__(self, png, scale):
-        self.contained = pygame.image.load(png)
-        self.scale = self.contained.get_rect()[2] * scale
-        self.offset = self.scale / 2.0
-        self.rot_angle = 0.0
-
-    def rotate(self, rotation):
-        self.rot_angle += rotation
-        image = pygame.transform.rotozoom(self.contained, np.degrees(self.rot_angle), 1)
-        rect = image.get_rect()
-        rect.center = (0, 0)
-
-        return image, rect
+from arm_part import ArmPart
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -31,22 +16,13 @@ linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 
 pygame.init()
 
-width = 750
-height = 750
+width = 1000
+height = 1000
 display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
-upperarm = ArmRect('upperarm.png', scale=.7)
-lowerarm = ArmRect('lowerarm.png', scale=.8)
-
-line_width = 12
-
-
-line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
-line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
-
-line_upperarm.fill(linkage_color)
-line_lowerarm.fill(linkage_color)
+upperarm = ArmPart('upperarm.png', scale=.8)
+lowerarm = ArmPart('lowerarm.png', scale=.9)
 
 origin = (width / 2.0, height / 2.0)
 
@@ -68,14 +44,6 @@ reached_goal = False
 current_pos_lst = [] #current end effector position
 target_ja_lst = [] #traget_joint_angle
 
-def transform(rect, container, part):
-    rect.center += np.asarray(container)
-    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
-                            -np.sin(part.rot_angle) * part.offset])
-
-def transform_lines(rect, container, part):
-    transform(rect, container, part)
-    rect.center += np.array([-rect.width / 2.0, -rect.height / 2.0])
 
 def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
@@ -129,9 +97,11 @@ def print_angle(x, y, origin):
 
     return (degree / 57.2958)
 
-#assumptions are that x and y have been reoriented to the coordinate space desired about the origin
-#need to ask heni about these corner cases and this closed formed solution
-#http://web.eecs.umich.edu/~ocj/courses/autorob/autorob_10_ik_closedform.pdf slide 43
+def transform(rect, container, part):
+    rect.center += np.asarray(container)
+    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
+    -np.sin(part.rot_angle) * part.offset])
+
 def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
     inside = round(inside, 5)
@@ -184,7 +154,7 @@ def generate_goal_pos(width, height, l0, l1):
     feasible_solution = False
     while not feasible_solution:
         goal_pos = (int(np.random.uniform(0, width)), int(np.random.uniform(0, height)))
-        theta_1, theta_0 = inv_kin_2arm(goal_pos[0] - 375, goal_pos[1] - 375, l0, l1)
+        theta_1, theta_0 = inv_kin_2arm(goal_pos[0] -500, goal_pos[1] - 500, l0, l1)
         if theta_1 == -20 and theta_0 == -20:
             feasible_solution = False
         else:
@@ -232,9 +202,9 @@ while 1:
 
     #check if I have a current goal -- not generate goal -- true check if I have met goal position
     if goal_exists_bool:
-        reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -375, goal_pos[1]-375), 7) #seven represents the radius I accept as acceptable to goal point
+        reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -500, goal_pos[1]-500), 7) #seven represents the radius I accept as acceptable to goal point
         if reached_goal:
-            create_dataset(current_pos_lst, target_ja_lst, (goal_pos[0] -375, goal_pos[1]-375))
+            create_dataset(current_pos_lst, target_ja_lst, (goal_pos[0] -500, goal_pos[1]-500))
             del(current_pos_lst)
             del(target_ja_lst)
             current_pos_lst = []
@@ -249,13 +219,13 @@ while 1:
         grabbed_endeff_bool=False
 
     if mouse_state[0] == 1 and not grabbed_endeff_bool:
-        grabbed_endeff_bool = check_end_eff_pos((pygame.mouse.get_pos()[0]-375, pygame.mouse.get_pos()[1]-375 ), current_endeff_pos, 5)
+        grabbed_endeff_bool = check_end_eff_pos((pygame.mouse.get_pos()[0]-500, pygame.mouse.get_pos()[1]-500 ), current_endeff_pos, 5)
 
     if mouse_state[0] == 1 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool and grabbed_endeff_bool:
         sprites.append(pygame.mouse.get_pos())
         sprites = return_ordered(sprites)
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
+        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 500.0, sprites[0][1] - 500.0, upperarm.scale, lowerarm.scale) #error possible if width isnt the dimension of interest
         if theta_1 == -20 and theta_0 == -20:
             print("Impossible to move end effector to desired location")
             num_steps_0 = 0
@@ -281,18 +251,15 @@ while 1:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
         fa_image, fa_rect = lowerarm.rotate(0.0)
         num_steps_0 +=-1
-
     elif num_steps_1 > 0 and num_steps_0 == 0:
         fa_image, fa_rect = lowerarm.rotate(rotate_rte_1)
         ua_image, ua_rect = upperarm.rotate(0.0)
         num_steps_1 += -1
-
     elif num_steps_0 > 0 and num_steps_1 > 0:
         fa_image, fa_rect = lowerarm.rotate(rotate_rte_1)
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
         num_steps_0 += -1
         num_steps_1 += -1
-
     else:
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
@@ -309,7 +276,7 @@ while 1:
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
-    current_endeff_pos = (joints[2][0]-375, joints[2][1]-375)
+    current_endeff_pos = (joints[2][0]-500, joints[2][1]-500)
 
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
@@ -317,31 +284,9 @@ while 1:
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-    # rotate arm lines
-    line_ua = pygame.transform.rotozoom(line_upperarm,
-                                        np.degrees(upperarm.rot_angle), 1)
-    line_fa = pygame.transform.rotozoom(line_lowerarm,
-                                        np.degrees(lowerarm.rot_angle), 1)
-
-    # translate arm lines
-    lua_rect = line_ua.get_rect()
-    transform_lines(lua_rect, joints[0], upperarm)
-
-    lfa_rect = line_fa.get_rect()
-    transform_lines(lfa_rect, joints[1], lowerarm)
-
-    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (375, 375))
+    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-    display.blit(line_ua, lua_rect)
-    display.blit(line_fa, lfa_rect)
-
-    # make my joints more pronounced
-    pygame.draw.circle(display, black, joints[0], 24)
-    pygame.draw.circle(display, gold, joints[0], 12)
-    pygame.draw.circle(display, black, joints[1], 16)
-    pygame.draw.circle(display, gold, joints[1], 7)
 
     # draw circle at goal position
     pygame.draw.circle(display, red, goal_pos, 10)

@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 def save_data(data, name):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-    np.save(dir_path + '/data/inv_kin_aprox/' + name, data)
+    np.save(dir_path + '/inv_kin_aprox/' + name, data)
 
 def convert_lst_np(lst):
     arr = np.asarray(lst)
@@ -54,20 +54,20 @@ def convert_normal_angle(t_0, t_1):
 def main():
     '''Regression Data Generator'''
     lst = []
-    larg_x = 750
-    larg_y = 750
-    length1 = 179
-    length2 = 149
+    larg_x = 1000
+    larg_y = 1000
+    length1 = 186
+    length2 = 269
 
     for iterator in range(args.num_data_train):
         x = int(np.random.uniform(0, larg_x))
         y = int(np.random.uniform(0, larg_y))
-        theta_0, theta_1 = inv_kin_2arm(x - 375.0, y - 375.0, length1, length2)
+        theta_0, theta_1 = inv_kin_2arm(x - 500.0, y - 500.0, length1, length2)
         if theta_0 == -20 and theta_1 == -20:
             print("impossible to reach")
         else:
             theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-            lst.append([[x - 375.0, y - 375.0], [theta_0, theta_1]])
+            lst.append([[x - 500.0, y - 500.0], [theta_0, theta_1]])
 
     print("im here")
     data = convert_lst_np(lst)
@@ -78,12 +78,12 @@ def main():
     for iterator in range(args.num_data_test):
         x = int(np.random.uniform(0, larg_x))
         y = int(np.random.uniform(0, larg_y))
-        theta_0, theta_1 = inv_kin_2arm(x - 375.0, y - 375.0, length1, length2)
+        theta_0, theta_1 = inv_kin_2arm(x - 500.0, y - 500.0, length1, length2)
         if theta_0 == -20 and theta_1 == -20:
             print("impossible to reach")
         else:
             theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-            lst.append([[x - 375.0, y - 375.0], [theta_0, theta_1]])
+            lst.append([[x - 500.0, y - 500.0], [theta_0, theta_1]])
 
     data = convert_lst_np(lst)
     save_data(data, "test")
@@ -96,11 +96,11 @@ def main():
     for iterator in range(args.num_data_train):
         x = int(np.random.uniform(0, larg_x))
         y = int(np.random.uniform(0, larg_y))
-        theta_0, theta_1 = inv_kin_2arm(x - 375.0, y - 375.0, length1, length2)
+        theta_0, theta_1 = inv_kin_2arm(x - 500.0, y - 500.0, length1, length2)
         if theta_0 == -20 and theta_1 == -20:
-            lst.append([[x - 375.0, y - 375.0], [0]])
+            lst.append([[x - 500.0, y - 500.0], [0]])
         else:
-            lst.append([[x - 375.0, y - 375.0], [1]])
+            lst.append([[x - 500.0, y - 500.0], [1]])
 
     data = convert_lst_np(lst)
     save_data(data, "train_classification")
@@ -111,11 +111,11 @@ def main():
     for iterator in range(args.num_data_test):
         x = int(np.random.uniform(0, larg_x))
         y = int(np.random.uniform(0, larg_y))
-        theta_0, theta_1 = inv_kin_2arm(x - 375.0, y - 375.0, length1, length2)
+        theta_0, theta_1 = inv_kin_2arm(x - 500.0, y - 500.0, length1, length2)
         if theta_0 == -20 and theta_1 == -20:
-            lst.append([[x - 375.0, y - 375.0], [0]])
+            lst.append([[x - 500.0, y - 500.0], [0]])
         else:
-            lst.append([[x - 375.0, y - 375.0], [1]])
+            lst.append([[x - 500.0, y - 500.0], [1]])
 
     data = convert_lst_np(lst)
     save_data(data, "test_classification")

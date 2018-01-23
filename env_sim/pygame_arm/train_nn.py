@@ -35,7 +35,7 @@ class FullyConnectedNetwork(nn.Module):
         self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
-        x = self.drop(x)
+        # x = self.drop(x)
 
         out_0 = F.tanh(self.h_0(x))
         out_0 = self.drop(out_0)
@@ -51,10 +51,6 @@ class FullyConnectedNetwork(nn.Module):
 
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-'''save and load'''
-def load_model(model, filepath):
-    return model.load_state_dict(torch.load(args.path_to_saved + args.best_norest))
 
 def save_model(model):
     torch.save(model.state_dict(), 'mysavedmodel.pth')
@@ -132,7 +128,6 @@ else:
 '''Load data'''
 train = np.load(dir_path + '/data/inv_kin_aprox/train.npy')
 train = train.astype('float64')
-
 
 test = np.load(dir_path + '/data/inv_kin_aprox/test.npy')
 test = test.astype('float64')

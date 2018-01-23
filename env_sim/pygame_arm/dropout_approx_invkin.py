@@ -22,6 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+from arm_part import ArmPart
 
 '''My simple feed forward neural network model'''
 class FullyConnectedNetwork(nn.Module):
@@ -49,22 +50,6 @@ class FullyConnectedNetwork(nn.Module):
 
         out = self.h_3(out_2)
         return out
-
-''' This class describes the png rect that I use to visualize in pygame '''
-class ArmRect:
-    def __init__(self, png, scale):
-        self.contained = pygame.image.load(png)
-        self.scale = self.contained.get_rect()[2] * scale
-        self.offset = self.scale / 2.0
-        self.rot_angle = 0.0
-
-    def rotate(self, rotation):
-        self.rot_angle += rotation
-        image = pygame.transform.rotozoom(self.contained, np.degrees(self.rot_angle), 1)
-        rect = image.get_rect()
-        rect.center = (0, 0)
-
-        return image, rect
 
 def load_model(model):
     return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/dropsavedmodel.pth'))
@@ -125,25 +110,17 @@ linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 pygame.init()
 pygame.display.set_caption('Estimating Neural Network Confidence Using Dropout')
 
-width = 750
-height = 750
+width = 1000
+height = 1000
 distance_for_histogram = 700
 display = pygame.display.set_mode((width + distance_for_histogram, height))
 frame_clock = pygame.time.Clock()
 
-upperarm = ArmRect('upperarm.png', scale=.7)
-lowerarm = ArmRect('lowerarm.png', scale=.8)
-
-line_width = 12
+upperarm = ArmPart('upperarm.png', scale=.8)
+lowerarm = ArmPart('lowerarm.png', scale=.9)
 
 training_data = []
 training_label = []
-
-line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
-line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
-
-line_upperarm.fill(linkage_color)
-line_lowerarm.fill(linkage_color)
 
 origin = (width / 2.0, height / 2.0)
 
@@ -168,14 +145,7 @@ def save_data(data, label, iteration):
     np.save(dir_path + '/data/data' + str(iteration), data)
     np.save(dir_path + '/data/label' + str(iteration), label)
 
-def transform(rect, container, part):
-    rect.center += np.asarray(container)
-    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
-                            -np.sin(part.rot_angle) * part.offset])
 
-def transform_lines(rect, container, part):
-    transform(rect, container, part)
-    rect.center += np.array([-rect.width / 2.0, -rect.height / 2.0])
 
 def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
@@ -201,6 +171,11 @@ def calc_rot(rad_current, rad_desired):
     num_steps = desired_transform / rotation_rte
     return int(abs(num_steps)), rotation_rte
 
+def transform(rect, container, part):
+    rect.center += np.asarray(container)
+    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
+    -np.sin(part.rot_angle) * part.offset])
+    
 def print_angle(x, y, origin):
     if x <= origin[0] and y <= origin[1]:
         opposite = origin[1] - y
@@ -298,10 +273,10 @@ while 1:
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
+        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - origin[0], sprites[0][1] - origin[1], upperarm.scale, lowerarm.scale) #error possible if width isnt the dimension of interest
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
-        input_to_model = torch.from_numpy(np.asarray([sprites[0][0] - 375.0, sprites[0][1] - 375.0])).float()
+        input_to_model = torch.from_numpy(np.asarray([sprites[0][0] - origin[0], sprites[0][1] - origin[1]])).float()
 
         #collect information about stochastic forward pass
         model.train()
@@ -380,36 +355,15 @@ while 1:
     transform(fa_rect, joints[1], lowerarm)
 
     if 'uncertainty_graphs' in locals():
-        display.blit(uncertainty_graphs, (780,130))
+        display.blit(uncertainty_graphs, (1020,250))
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-    # rotate arm lines
-    line_ua = pygame.transform.rotozoom(line_upperarm,
-                                        np.degrees(upperarm.rot_angle), 1)
-    line_fa = pygame.transform.rotozoom(line_lowerarm,
-                                        np.degrees(lowerarm.rot_angle), 1)
 
-    # translate arm lines
-    lua_rect = line_ua.get_rect()
-    transform_lines(lua_rect, joints[0], upperarm)
-
-    lfa_rect = line_fa.get_rect()
-    transform_lines(lfa_rect, joints[1], lowerarm)
-
-    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (375, 375))
+    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (origin[0], origin[1]))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-    display.blit(line_ua, lua_rect)
-    display.blit(line_fa, lfa_rect)
-
-    # draw circles at joints for pretty
-    pygame.draw.circle(display, black, joints[0], 24)
-    pygame.draw.circle(display, gold, joints[0], 12)
-    pygame.draw.circle(display, black, joints[1], 16)
-    pygame.draw.circle(display, gold, joints[1], 7)
 
     for sprite in sprites:
         pygame.draw.circle(display, red, sprite, 4)

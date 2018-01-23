@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+from arm_part import ArmPart
 
 '''Model class'''
 class ClassicalLSTM(nn.Module):
@@ -28,23 +29,6 @@ class ClassicalLSTM(nn.Module):
         hx_2, cx_2 = self.lstm_2(hx_1, states[2])
         x = self.fcn1(hx_2)
         return x, [[hx_0, cx_0], [hx_1, cx_1], [hx_2, cx_2]]
-
-
-''' This class describes the png rect that I use to visualize in pygame '''
-class ArmRect:
-    def __init__(self, png, scale):
-        self.contained = pygame.image.load(png)
-        self.scale = self.contained.get_rect()[2] * scale
-        self.offset = self.scale / 2.0
-        self.rot_angle = 0.0
-
-    def rotate(self, rotation):
-        self.rot_angle += rotation
-        image = pygame.transform.rotozoom(self.contained, np.degrees(self.rot_angle), 1)
-        rect = image.get_rect()
-        rect.center = (0, 0)
-
-        return image, rect
 
 def load_model(model):
     return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/lstmsavedmodel.pth'))
@@ -73,22 +57,14 @@ linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 
 pygame.init()
 
-width = 750
-height = 750
+width = 1000
+height = 1000
 display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
-upperarm = ArmRect('upperarm.png', scale=.7)
-lowerarm = ArmRect('lowerarm.png', scale=.8)
+upperarm = ArmPart('upperarm.png', scale=.8)
+lowerarm = ArmPart('lowerarm.png', scale=.9)
 
-line_width = 12
-
-
-line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
-line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
-
-line_upperarm.fill(linkage_color)
-line_lowerarm.fill(linkage_color)
 
 origin = (width / 2.0, height / 2.0)
 
@@ -124,20 +100,15 @@ def transform(rect, container, part):
     rect.center += np.array([np.cos(part.rot_angle) * part.offset,
                             -np.sin(part.rot_angle) * part.offset])
 
-def transform_lines(rect, container, part):
-    transform(rect, container, part)
-    rect.center += np.array([-rect.width / 2.0, -rect.height / 2.0])
 
 def calc_rot(rad_current, rad_desired):
-    #this is how many radians I need to move in total
     desired_transform = rad_desired - rad_current
     oneeighty = 180/57.2958
-
 
     #This is to make sure the direction I am turning is the most efficient way to turn
     if desired_transform < 0:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = 1 #1 degree per frame
+            rotation_rte = 1 #1 degree per frames
         else:
             rotation_rte = -1 #1 degree per frame
     else:
@@ -180,9 +151,6 @@ def print_angle(x, y, origin):
 
     return (degree / 57.2958)
 
-#assumptions are that x and y have been reoriented to the coordinate space desired about the origin
-#need to ask heni about these corner cases and this closed formed solution
-#http://web.eecs.umich.edu/~ocj/courses/autorob/autorob_10_ik_closedform.pdf slide 43
 def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
     inside = round(inside, 5)
@@ -228,20 +196,18 @@ def calc_origin(theta, hyp):
 
     return int(-y), int(-x)
 
-
 ''' Generate New Desired Location '''
 def generate_goal_pos(width, height, l0, l1):
     feasible_solution = False
     while not feasible_solution:
         goal_pos = (int(np.random.uniform(0, width)), int(np.random.uniform(0, height)))
-        theta_1, theta_0 = inv_kin_2arm(goal_pos[0] - 375, goal_pos[1] - 375, l0, l1)
+        theta_1, theta_0 = inv_kin_2arm(goal_pos[0] - 500, goal_pos[1] - 500, l0, l1)
         if theta_1 == -20 and theta_0 == -20:
             feasible_solution = False
         else:
             feasible_solution = True
 
     return goal_pos
-
 
 ''' Check if in goal circle '''
 def check_goal_status(eff_pos, goal_pos, radius):
@@ -274,12 +240,12 @@ while 1:
     #check if I have a current goal -- not generate goal -- true check if I have met goal position
     if goal_exists_bool:
         #check if I've met goal criteria
-        reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -375, goal_pos[1]-375), 10) #seven represents the radius I accept as acceptable to goal point
+        reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -500, goal_pos[1]-500), 10) #seven represents the radius I accept as acceptable to goal point
         if reached_goal:
             goal_exists_bool = False
         else:
             #prepare data for model
-            input_data = np.asarray([goal_pos[0] -375, goal_pos[1] -375, current_endeff_pos[0] -375, current_endeff_pos[1] -375])
+            input_data = np.asarray([goal_pos[0] -500, goal_pos[1] -500, current_endeff_pos[0] -500, current_endeff_pos[1] -500])
             if torch.cuda.is_available():
                 data = Variable(torch.from_numpy(input_data).float().cuda(), volatile=True)
             else:
@@ -339,7 +305,7 @@ while 1:
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
-    current_endeff_pos = (joints[2][0]-375, joints[2][1]-375)
+    current_endeff_pos = (joints[2][0]-500, joints[2][1]-500)
 
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
@@ -347,31 +313,15 @@ while 1:
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-    # rotate arm lines
-    line_ua = pygame.transform.rotozoom(line_upperarm,
-                                        np.degrees(upperarm.rot_angle), 1)
-    line_fa = pygame.transform.rotozoom(line_lowerarm,
-                                        np.degrees(lowerarm.rot_angle), 1)
 
-    # translate arm lines
-    lua_rect = line_ua.get_rect()
-    transform_lines(lua_rect, joints[0], upperarm)
 
-    lfa_rect = line_fa.get_rect()
-    transform_lines(lfa_rect, joints[1], lowerarm)
 
-    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (375, 375))
+    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
-    display.blit(line_ua, lua_rect)
-    display.blit(line_fa, lfa_rect)
 
-    # make my joints more pronounced
-    pygame.draw.circle(display, black, joints[0], 24)
-    pygame.draw.circle(display, gold, joints[0], 12)
-    pygame.draw.circle(display, black, joints[1], 16)
-    pygame.draw.circle(display, gold, joints[1], 7)
+
 
     # draw circle at goal position
     pygame.draw.circle(display, red, goal_pos, 10)

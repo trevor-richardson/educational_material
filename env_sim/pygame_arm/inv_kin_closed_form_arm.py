@@ -6,21 +6,7 @@ import numpy as np
 import pygame
 import sys
 import os
-
-''' This class describes the png rect that I use to visualize in pygame '''
-class ArmRect:
-    def __init__(self, png, scale):
-        self.contained = pygame.image.load(png)
-        self.scale = self.contained.get_rect()[2] * scale
-        self.offset = self.scale / 2.0
-        self.rot_angle = 0.0
-
-    def rotate(self, rotation):
-        self.rot_angle += rotation
-        image = pygame.transform.rotozoom(self.contained, np.degrees(self.rot_angle), 1)
-        rect = image.get_rect()
-        rect.center = (0, 0)
-        return image, rect
+from arm_part import ArmPart
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -30,22 +16,14 @@ linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 
 pygame.init()
 
-width = 750
-height = 750
+width = 1000
+height = 1000
 display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
-upperarm = ArmRect('upperarm.png', scale=.7)
-lowerarm = ArmRect('lowerarm.png', scale=.8)
+upperarm = ArmPart('upperarm.png', scale=.8)
+lowerarm = ArmPart('lowerarm.png', scale=.9)
 
-line_width = 12
-
-
-line_upperarm = pygame.Surface((upperarm.scale, line_width), pygame.SRCALPHA, 32)
-line_lowerarm = pygame.Surface((lowerarm.scale, line_width), pygame.SRCALPHA, 32)
-
-line_upperarm.fill(linkage_color)
-line_lowerarm.fill(linkage_color)
 
 origin = (width / 2.0, height / 2.0)
 
@@ -65,14 +43,6 @@ def save_data(data, label, iteration):
     np.save(dir_path + '/data/data' + str(iteration), data)
     np.save(dir_path + '/data/label' + str(iteration), label)
 
-def transform(rect, container, part):
-    rect.center += np.asarray(container)
-    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
-                            -np.sin(part.rot_angle) * part.offset])
-
-def transform_lines(rect, container, part):
-    transform(rect, container, part)
-    rect.center += np.array([-rect.width / 2.0, -rect.height / 2.0])
 
 def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
@@ -97,6 +67,12 @@ def calc_rot(rad_current, rad_desired):
 
     num_steps = desired_transform / rotation_rte
     return int(abs(num_steps)), rotation_rte
+
+
+def transform(rect, container, part):
+    rect.center += np.asarray(container)
+    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
+    -np.sin(part.rot_angle) * part.offset])
 
 def print_angle(x, y, origin):
     if x <= origin[0] and y <= origin[1]:
@@ -134,7 +110,7 @@ def inv_kin_2arm(x, y, l0, l1):
     inside = round(inside, 5)
 
     if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or (x == 0 and y == 0):
-        return -1, -1
+        return -20, -20
     else:
         theta_1 = (np.arccos(inside))
 
@@ -143,7 +119,7 @@ def inv_kin_2arm(x, y, l0, l1):
 
         if b == 0:
             print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
-            return -1, -1
+            return -20, -20
 
         theta_0 = np.arctan2(a, b)
 
@@ -195,8 +171,8 @@ while 1:
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 375.0, sprites[0][1] - 375.0, 179, 149) #error possible if width isnt the dimension of interest
-        if theta_1 == -1 and theta_0 == -1:
+        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - origin[0], sprites[0][1] - origin[1], upperarm.scale, lowerarm.scale) #error possible if width isnt the dimension of interest
+        if theta_1 == -20 and theta_0 == -20:
             print("Impossible to move end effector to desired location")
             num_steps_0 = 0
             num_steps_1 = 0
@@ -250,31 +226,9 @@ while 1:
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-    # rotate arm lines
-    line_ua = pygame.transform.rotozoom(line_upperarm,
-                                        np.degrees(upperarm.rot_angle), 1)
-    line_fa = pygame.transform.rotozoom(line_lowerarm,
-                                        np.degrees(lowerarm.rot_angle), 1)
-
-    # translate arm lines
-    lua_rect = line_ua.get_rect()
-    transform_lines(lua_rect, joints[0], upperarm)
-
-    lfa_rect = line_fa.get_rect()
-    transform_lines(lfa_rect, joints[1], lowerarm)
-
-    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (375, 375))
+    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-    display.blit(line_ua, lua_rect)
-    display.blit(line_fa, lfa_rect)
-
-    # draw circles at joints for pretty
-    pygame.draw.circle(display, black, joints[0], 24)
-    pygame.draw.circle(display, gold, joints[0], 12)
-    pygame.draw.circle(display, black, joints[1], 16)
-    pygame.draw.circle(display, gold, joints[1], 7)
 
     for sprite in sprites:
         pygame.draw.circle(display, red, sprite, 4)
