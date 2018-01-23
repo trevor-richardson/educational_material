@@ -13,7 +13,7 @@ import os
 #network model
 '''global variables'''
 batch_sz = 1024
-epochs = 5000
+epochs = 10000
 learning_rate = .0001
 input_shape = 2
 output_shape = 2
@@ -32,19 +32,19 @@ class FullyConnectedNetwork(nn.Module):
         self.h_1 = nn.Linear(num_hidden_neurons[0], num_hidden_neurons[1])
         self.h_2 = nn.Linear(num_hidden_neurons[1], num_hidden_neurons[2])
         self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
-        self.drop = nn.Dropout(dropout_rte)
+        # self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
         # x = self.drop(x)
 
         out_0 = F.tanh(self.h_0(x))
-        out_0 = self.drop(out_0)
+        # out_0 = self.drop(out_0)
 
         out_1 = F.tanh(self.h_1(out_0))
-        out_1 = self.drop(out_1)
+        # out_1 = self.drop(out_1)
 
         out_2 = F.tanh(self.h_2(out_1))
-        out_2 = self.drop(out_2)
+        # out_2 = self.drop(out_2)
 
         out = self.h_3(out_2)
         return out

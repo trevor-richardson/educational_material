@@ -41,6 +41,7 @@ class FullyConnectedNetwork(nn.Module):
 def load_model(model):
     return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/deterministicmodel.pth'))
 
+hand_offset = 35
 input_shape = 2
 output_shape = 2
 drop_rte = 0.1
@@ -244,6 +245,9 @@ while 1:
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
+    for sprite in sprites:
+        pygame.draw.circle(display, red, sprite, 4)
+
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
 
@@ -253,10 +257,6 @@ while 1:
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (origin[0], origin[1]))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-
-    for sprite in sprites:
-        pygame.draw.circle(display, red, sprite, 4)
 
     # check for quit
     for event in pygame.event.get():

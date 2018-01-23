@@ -35,6 +35,7 @@ origin_1 = (0, 0)
 rotate_rte_0 = 0
 rotate_rte_1 = 0
 
+hand_offset = 0
 mouse_bool = False
 mouse_state_bool = True
 grabbed_endeff_bool = False #This only becomes True when the user grabs the location near the endeff
@@ -200,19 +201,16 @@ while 1:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 
-    #check if I have a current goal -- not generate goal -- true check if I have met goal position
     if goal_exists_bool:
         reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -500, goal_pos[1]-500), 7) #seven represents the radius I accept as acceptable to goal point
         if reached_goal:
             create_dataset(current_pos_lst, target_ja_lst, (goal_pos[0] -500, goal_pos[1]-500))
-            del(current_pos_lst)
-            del(target_ja_lst)
-            current_pos_lst = []
-            target_ja_lst = []
+            del(current_pos_lst[:])
+            del(target_ja_lst[:])
             goal_exists_bool = False
 
     if not goal_exists_bool:
-        goal_pos = generate_goal_pos(width, height, 179, 149)
+        goal_pos = generate_goal_pos(width, height, upperarm.scale, lowerarm.scale - hand_offset)
         goal_exists_bool = True
 
     if mouse_state[0]  == 0:
@@ -225,7 +223,7 @@ while 1:
         sprites.append(pygame.mouse.get_pos())
         sprites = return_ordered(sprites)
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 500.0, sprites[0][1] - 500.0, upperarm.scale, lowerarm.scale) #error possible if width isnt the dimension of interest
+        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - 500.0, sprites[0][1] - 500.0, upperarm.scale, lowerarm.scale - hand_offset) #error possible if width isnt the dimension of interest
         if theta_1 == -20 and theta_0 == -20:
             print("Impossible to move end effector to desired location")
             num_steps_0 = 0
@@ -277,19 +275,21 @@ while 1:
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
     current_endeff_pos = (joints[2][0]-500, joints[2][1]-500)
+    #theres a problem here
 
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
+    # draw circle at goal position
+    pygame.draw.circle(display, red, goal_pos, 10)
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
+    pygame.draw.circle(display, black, (int(current_endeff_pos[0]+origin[0]), int(current_endeff_pos[1]+origin[1])), 10)
+    pygame.draw.circle(display, red, (int(origin[0]), int(origin[1])), 10)
 
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-    # draw circle at goal position
-    pygame.draw.circle(display, red, goal_pos, 10)
 
     # check for quit
     for event in pygame.event.get():

@@ -37,7 +37,7 @@ class FullyConnectedNetwork(nn.Module):
         self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
-        x = self.drop(x)
+        # x = self.drop(x)
 
         out_0 = F.tanh(self.h_0(x))
         out_0 = self.drop(out_0)
@@ -100,6 +100,8 @@ model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 load_model(model)
+if torch.cuda.is_available():
+    model.cuda()
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -146,7 +148,6 @@ def save_data(data, label, iteration):
     np.save(dir_path + '/data/label' + str(iteration), label)
 
 
-
 def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
     desired_transform = rad_desired - rad_current
@@ -175,7 +176,7 @@ def transform(rect, container, part):
     rect.center += np.asarray(container)
     rect.center += np.array([np.cos(part.rot_angle) * part.offset,
     -np.sin(part.rot_angle) * part.offset])
-    
+
 def print_angle(x, y, origin):
     if x <= origin[0] and y <= origin[1]:
         opposite = origin[1] - y
@@ -204,28 +205,6 @@ def print_angle(x, y, origin):
 
     return (degree / 57.2958)
 
-#assumptions are that x and y have been reoriented to the coordinate space desired about the origin
-#need to ask heni about these corner cases and this closed formed solution
-#http://web.eecs.umich.edu/~ocj/courses/autorob/autorob_10_ik_closedform.pdf slide 43
-def inv_kin_2arm(x, y, l0, l1):
-    inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
-    inside = round(inside, 5)
-
-    if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or (x == 0 and y == 0):
-        return -1, -1
-    else:
-        theta_1 = (np.arccos(inside))
-
-        a = y * (l1 * np.cos(theta_1) + l0) - x * l1 * np.sin(theta_1)
-        b = x * (l1 * np.cos(theta_1) + l0) + y * l1 * np.sin(theta_1)
-
-        if b == 0:
-            print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
-            return -1, -1
-
-        theta_0 = np.arctan2(a, b)
-
-    return theta_0, theta_1
 
 def convert_normal_angle(t_0, t_1):
     if t_0 < 0:
@@ -262,6 +241,7 @@ def return_ordered(seq):
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
 
+basicfont = pygame.font.SysFont(None, 38)
 
 while 1:
     display.fill(white)
@@ -273,11 +253,10 @@ while 1:
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - origin[0], sprites[0][1] - origin[1], upperarm.scale, lowerarm.scale) #error possible if width isnt the dimension of interest
-        theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-
-        input_to_model = torch.from_numpy(np.asarray([sprites[0][0] - origin[0], sprites[0][1] - origin[1]])).float()
-
+        if torch.cuda.is_available():
+            input_to_model = Variable(torch.from_numpy(np.asarray([sprites[0][0] - origin[0], sprites[0][1] - origin[1]])).float().cuda())
+        else:
+            input_to_model = Variable(torch.from_numpy(np.asarray([sprites[0][0] - origin[0], sprites[0][1] - origin[1]])).float())
         #collect information about stochastic forward pass
         model.train()
 
@@ -351,11 +330,15 @@ while 1:
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
+
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
 
     if 'uncertainty_graphs' in locals():
         display.blit(uncertainty_graphs, (1020,250))
+
+    for sprite in sprites:
+        pygame.draw.circle(display, red, sprite, 4)
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
@@ -365,8 +348,19 @@ while 1:
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
-    for sprite in sprites:
-        pygame.draw.circle(display, red, sprite, 4)
+    text = basicfont.render('Model Uncertainty Graph', True, (0, 0, 0), (255, 255, 255))
+    textrect = text.get_rect()
+    # print(textrect)
+    textrect[0]+= 1195
+    textrect[1]+=185
+    display.blit(text, textrect)
+    text2 = basicfont.render('60 Stochastic Forward Passes', True, (0, 0, 0), (255, 255, 255))
+    textrect2 = text2.get_rect()
+    # print(textrect)
+    textrect2[0]+= 1165
+    textrect2[1]+=225
+    display.blit(text2, textrect2)
+
 
     # check for quit
     for event in pygame.event.get():

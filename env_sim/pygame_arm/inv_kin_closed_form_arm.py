@@ -37,6 +37,7 @@ rotate_rte_0 = 0
 rotate_rte_1 = 0
 
 mouse_bool = False
+hand_offset = 35
 
 def save_data(data, label, iteration):
     dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
@@ -108,21 +109,18 @@ def print_angle(x, y, origin):
 def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
     inside = round(inside, 5)
-
     if (x**2 + y**2 )**.5 > l0 + l1 or abs(inside) > 1 or (x == 0 and y == 0):
         return -20, -20
     else:
         theta_1 = (np.arccos(inside))
-
         a = y * (l1 * np.cos(theta_1) + l0) - x * l1 * np.sin(theta_1)
+        if x == 0:
+            x = .00001
         b = x * (l1 * np.cos(theta_1) + l0) + y * l1 * np.sin(theta_1)
 
         if b == 0:
-            print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
             return -20, -20
-
         theta_0 = np.arctan2(a, b)
-
     return theta_0, theta_1
 
 def convert_normal_angle(t_0, t_1):
@@ -137,7 +135,6 @@ def calc_origin(theta, hyp):
     if theta < (np.pi/2.0):
         x = hyp * np.cos(theta)
         y = hyp * np.sin(theta)
-
     elif theta < np.pi:
         theta = np.pi - theta
         x = -1 * (hyp * np.cos(theta))
@@ -147,12 +144,10 @@ def calc_origin(theta, hyp):
         theta = (3/2.0) * np.pi - theta
         y = -1 * (hyp * np.cos(theta))
         x =  -1 * hyp * np.sin(theta)
-
     else:
         theta = 2 * np.pi - theta
         x = (hyp * np.cos(theta))
         y = -1 * hyp * np.sin(theta)
-
     return int(-y), int(-x)
 
 def return_ordered(seq):
@@ -171,7 +166,7 @@ while 1:
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
 
-        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - origin[0], sprites[0][1] - origin[1], upperarm.scale, lowerarm.scale) #error possible if width isnt the dimension of interest
+        theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - origin[0], sprites[0][1] - origin[1], upperarm.scale, lowerarm.scale - hand_offset) #error possible if width isnt the dimension of interest
         if theta_1 == -20 and theta_0 == -20:
             print("Impossible to move end effector to desired location")
             num_steps_0 = 0
@@ -223,6 +218,9 @@ while 1:
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)
 
+    for sprite in sprites:
+        pygame.draw.circle(display, red, sprite, 4)
+
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
@@ -230,8 +228,7 @@ while 1:
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
-    for sprite in sprites:
-        pygame.draw.circle(display, red, sprite, 4)
+
 
     # check for quit
     for event in pygame.event.get():
