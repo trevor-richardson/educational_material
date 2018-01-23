@@ -37,7 +37,6 @@ linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 pygame.init()
 pygame.display.set_caption('Learning and PCA')
 
-
 width = 750
 height = 750
 display = pygame.display.set_mode((width, height))
@@ -56,7 +55,6 @@ line_lowerarm.fill(linkage_color)
 
 origin = (width / 2.0, height / 2.0)
 
-sprites = []
 num_steps_0 = 0
 num_steps_1 = 0
 cur_radians_0 = 0
@@ -65,12 +63,6 @@ origin_1 = (0, 0)
 rotate_rte_0 = 0
 rotate_rte_1 = 0
 
-mouse_bool = False
-
-def save_data(data, label, iteration):
-    dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-    np.save(dir_path + '/data/data' + str(iteration), data)
-    np.save(dir_path + '/data/label' + str(iteration), label)
 
 def transform(rect, container, part):
     rect.center += np.asarray(container)
@@ -133,7 +125,6 @@ def print_angle(x, y, origin):
 
     return (degree / 57.2958)
 
-#http://web.eecs.umich.edu/~ocj/courses/autorob/autorob_10_ik_closedform.pdf slide 43
 def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
     inside = round(inside, 5)
@@ -143,7 +134,10 @@ def inv_kin_2arm(x, y, l0, l1):
     else:
         theta_1 = (np.arccos(inside))
         a = y * (l1 * np.cos(theta_1) + l0) - x * l1 * np.sin(theta_1)
+        if x == 0:
+            x = .00001
         b = x * (l1 * np.cos(theta_1) + l0) + y * l1 * np.sin(theta_1)
+
         if b == 0:
             print("impossible to reach", l0, l1, x, y, abs(((x^2 + y^2) - l0^2 - l1^2)/(2*l0*l1)))
             return -1, -1
@@ -157,42 +151,54 @@ def convert_normal_angle(t_0, t_1):
         t_1 = 2* np.pi + t_1
     return t_0, t_1
 
-def calc_origin(theta, hyp):
-    if theta < (np.pi/2.0):
-        x = hyp * np.cos(theta)
-        y = hyp * np.sin(theta)
-    elif theta < np.pi:
-        theta = np.pi - theta
-        x = -1 * (hyp * np.cos(theta))
-        y = hyp * np.sin(theta)
-    elif theta < (3/2.0) * np.pi:
-        theta = (3/2.0) * np.pi - theta
-        y = -1 * (hyp * np.cos(theta))
-        x =  -1 * hyp * np.sin(theta)
+def rot_it(rad_current, rad_desired):
+    #this is how many radians I need to move in total
+    desired_transform = rad_desired - rad_current
+    oneeighty = 180/57.2958
+
+    #This is to make sure the direction I am turning is the most efficient way to turn
+    if desired_transform < 0:
+        if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
+            rotation_rte = 1 #1 degree per frame
+        else:
+            rotation_rte = -1 #1 degree per frame
     else:
-        theta = 2 * np.pi - theta
-        x = (hyp * np.cos(theta))
-        y = -1 * hyp * np.sin(theta)
-    return int(-y), int(-x)
+        if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
+            rotation_rte = -1
+        else:
+            rotation_rte = 1 #1 degree per frame
+
+    desired_transform = (abs(desired_transform))
+    if desired_transform > (np.pi):
+        desired_transform = 2*np.pi - desired_transform
+
+    return 1, rotation_rte * desired_transform
 
 def calculate_pca(data, k=2):
     #extract mean of the data
     data = torch.from_numpy(data)
-    data_mean = torch.mean(data,1) #columnwise mean
+    data_mean = torch.mean(data,0) #columnwise mean
     data = data - data_mean.expand_as(data)
 
     U,S,V = torch.svd(torch.t(data))
-    return torch.mm(data, U[:,:k])
+    return U[:,:k], data_mean[0], data_mean[1]
 
+half_circle_bool = True
 current_state = 0
+trajectories_to_collect = 0 #This will collect one trajectory
+joint_data = []
+lamda = 0
+
+basicfont = pygame.font.SysFont(None, 48)
 
 while 1:
     display.fill(white)
-    mouse_state = pygame.mouse.get_pressed()
-    #current_state = 0 -- move arm to starting position -- dont collect data
-    # print(num_steps_0, num_steps_1, cur_radians_0, cur_radians_1)
+
     if current_state == 0 and num_steps_0 == 0 and num_steps_1 == 0 and cur_radians_0 != 0:
-        goal = (0, 30)
+        if half_circle_bool:
+            goal = (0, 328)
+        else:
+            goal = (0, 30)
         theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], 179, 149)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
@@ -203,10 +209,10 @@ while 1:
 
         num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
         num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
-
     #current_state = 1 -- move arm to stretched out position
     if current_state == 1 and num_steps_0 == 0 and num_steps_1 == 0:
         goal = (328, 0)
+        trajectories_to_collect += -1
 
         theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], 179, 149)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
@@ -220,7 +226,10 @@ while 1:
         num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
     #current_state = 2 -- move arm to starting position
     if current_state == 2 and num_steps_0 == 0 and num_steps_1 == 0:
-        goal = (0, 30)
+        if half_circle_bool:
+            goal = (0, -328)
+        else:
+            goal = (0, 30)
         theta_0, theta_1 = inv_kin_2arm(goal[0], goal[1], 179, 149)
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
@@ -232,9 +241,22 @@ while 1:
         num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
         num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
     #current state = 3 -- train pca -- execute pca
-    if current_state ==3:
-        print("state3")
+    if current_state ==3 and num_steps_0 == 0 and num_steps_1 == 0:
+        #calc PCA
+        pc, m_0, m_1 = calculate_pca(np.asarray(joint_data))
+        current_state = 4
 
+    if current_state == 4:
+        '''executing pca'''
+        theta_0 = m_0 + lamda * pc[0][0]
+        theta_add = m_1 + lamda * pc[0][1]
+
+        num_steps_0, rotate_rte_0 = rot_it(cur_radians_0, theta_0)
+        num_steps_1, rotate_rte_1 = rot_it(cur_radians_1, theta_add)
+        lamda += .05
+
+        if lamda == 1:
+            lamda = 0
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
@@ -257,9 +279,21 @@ while 1:
         elif current_state == 1:
             current_state = 2
         elif current_state == 2:
-            current_state = 1
+            if half_circle_bool:
+                current_state = 3
+            else:
+                current_state = 1
+                if trajectories_to_collect < 0:
+                    current_state = 3
 
+    if half_circle_bool:
+        if current_state == 1 or current_state == 2:
+            joint_data.append([cur_radians_0, cur_radians_1])
+    else:
+        if current_state == 1:
+            joint_data.append([cur_radians_0, cur_radians_1])
 
+    #moving the arms after the calculations are made
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rot_angle),
                           lowerarm.scale * np.cos(lowerarm.rot_angle)]) + origin[0]
@@ -291,7 +325,6 @@ while 1:
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
     #blit the lines of importance
-
     display.blit(line_ua, lua_rect)
     display.blit(line_fa, lfa_rect)
 
@@ -300,11 +333,14 @@ while 1:
     pygame.draw.circle(display, black, joints[1], 16)
     pygame.draw.circle(display, gold, joints[1], 7)
 
-    if current_state ==1 or current_state == 2:
-        pygame.draw.circle(display, red, (goal[0] + 375, goal[1] + 375), 7)
-
-    for sprite in sprites:
-        pygame.draw.circle(display, red, sprite, 4)
+    if current_state != 4:
+        text = basicfont.render('Collecting Data', True, (0, 0, 0), (255, 255, 255))
+        textrect = text.get_rect()
+        display.blit(text, textrect)
+    else:
+        text = basicfont.render("Executing PCA Lambda " + str(round(lamda, 1)), True, (0, 0, 0), (255, 255, 255))
+        textrect = text.get_rect()
+        display.blit(text, textrect)
 
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
