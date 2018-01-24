@@ -5,11 +5,11 @@ import os
 
 parser = argparse.ArgumentParser(description='Input for generating data points to be learned from')
 
-parser.add_argument('--num_data_train', type=int, default=50000, metavar='N',
-                    help='Input batch size for training (default: 25000)')
+parser.add_argument('--num_data_train', type=int, default=100000, metavar='N',
+                    help='Input batch size for training (default: 100000)')
 
-parser.add_argument('--num_data_test', type=int, default=5000, metavar='N',
-                    help='Input batch size for training (default: 3000)')
+parser.add_argument('--num_data_test', type=int, default=50000, metavar='N',
+                    help='Input batch size for training (default: 10000)')
 
 args = parser.parse_args()
 
@@ -19,10 +19,8 @@ def save_data(data, name):
 
 def convert_lst_np(lst):
     arr = np.asarray(lst)
-    # print(arr)
     print(arr.shape)
     return arr
-
 
 def inv_kin_2arm(x, y, l0, l1):
     inside = (x**2 + y**2 - l0**2 - l1**2)/(2*l0*l1)
@@ -59,8 +57,8 @@ def main():
     length2 = 269
     length2 += -hand_offset
     radius = length2 + length1
-    lower_bound = larg_x/2 - radius
-    upper_bound = larg_x/2 + radius
+    lower_bound = 0
+    upper_bound = 1000
 
     for iterator in range(args.num_data_train):
         x = int(np.random.uniform(lower_bound, upper_bound))
@@ -69,7 +67,7 @@ def main():
         if theta_0 == -20 and theta_1 == -20:
             f = 0
         else:
-            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+            # theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
             lst.append([[x - 500.0, y - 500.0], [theta_0, theta_1]])
 
     data = convert_lst_np(lst)
@@ -83,7 +81,7 @@ def main():
         if theta_0 == -20 and theta_1 == -20:
             f = 0
         else:
-            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+            # theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
             lst.append([[x - 500.0, y - 500.0], [theta_0, theta_1]])
 
     data = convert_lst_np(lst)
@@ -91,7 +89,6 @@ def main():
     del(lst[:])
 
     '''Classification Data Generator'''
-
     # for iterator in range(args.num_data_train):
     #     x = int(np.random.uniform(lower_bound, upper_bound))
     #     y = int(np.random.uniform(lower_bound, upper_bound))
@@ -104,7 +101,6 @@ def main():
     # data = convert_lst_np(lst)
     # save_data(data, "train_classification")
     # del(lst[:])
-    #
     #
     # for iterator in range(args.num_data_test):
     #     x = int(np.random.uniform(lower_bound, upper_bound))

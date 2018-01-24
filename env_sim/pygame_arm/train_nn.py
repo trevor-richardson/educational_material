@@ -12,13 +12,13 @@ import os
 
 #network model
 '''global variables'''
-batch_sz = 1024
-epochs = 10000
+batch_sz = 2056
+epochs = 5000
 learning_rate = .0001
 input_shape = 2
 output_shape = 2
 drop_rte = 0.1
-hidden_neurons = [50, 40, 20, output_shape]
+hidden_neurons = [40, 40, 40, 40,output_shape]
 
 #load the numpy array
 dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
@@ -32,21 +32,24 @@ class FullyConnectedNetwork(nn.Module):
         self.h_1 = nn.Linear(num_hidden_neurons[0], num_hidden_neurons[1])
         self.h_2 = nn.Linear(num_hidden_neurons[1], num_hidden_neurons[2])
         self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
-        # self.drop = nn.Dropout(dropout_rte)
+        self.h_4 = nn.Linear(num_hidden_neurons[3], num_hidden_neurons[4])
+
+        self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
-        # x = self.drop(x)
 
         out_0 = F.tanh(self.h_0(x))
-        # out_0 = self.drop(out_0)
+        out_0 = self.drop(out_0)
 
         out_1 = F.tanh(self.h_1(out_0))
-        # out_1 = self.drop(out_1)
+        out_1 = self.drop(out_1)
 
         out_2 = F.tanh(self.h_2(out_1))
-        # out_2 = self.drop(out_2)
+        out_2 = self.drop(out_2)
 
-        out = self.h_3(out_2)
+        out_3 = F.tanh(self.h_3(out_2))
+
+        out = self.h_4(out_3)
         return out
 
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
@@ -79,6 +82,7 @@ def train_model(epoch, data, label):
         output = model(data_batch)
         loss = mseloss(output, label_batch)
         train_loss+=loss.data
+        # print(train_loss, "dtaasdfa")
         train_step_counter +=1
 
         loss.backward()
@@ -90,7 +94,7 @@ def train_model(epoch, data, label):
 '''test'''
 def test_model(data, label):
     global model
-    batch_sz = 64
+    batch_sz = 2056
     model.eval()
 
     test_loss = 0

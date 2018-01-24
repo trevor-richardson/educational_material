@@ -24,7 +24,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from arm_part import ArmPart
 
-'''My simple feed forward neural network model'''
+'''Simple Regression FCN Model'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
         super(FullyConnectedNetwork, self).__init__()
@@ -33,11 +33,11 @@ class FullyConnectedNetwork(nn.Module):
         self.h_1 = nn.Linear(num_hidden_neurons[0], num_hidden_neurons[1])
         self.h_2 = nn.Linear(num_hidden_neurons[1], num_hidden_neurons[2])
         self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
+        self.h_4 = nn.Linear(num_hidden_neurons[3], num_hidden_neurons[4])
 
         self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
-        # x = self.drop(x)
 
         out_0 = F.tanh(self.h_0(x))
         out_0 = self.drop(out_0)
@@ -48,11 +48,14 @@ class FullyConnectedNetwork(nn.Module):
         out_2 = F.tanh(self.h_2(out_1))
         out_2 = self.drop(out_2)
 
-        out = self.h_3(out_2)
+        out_3 = F.tanh(self.h_3(out_2))
+
+        out = self.h_4(out_3)
         return out
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/dropsavedmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
+    # return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/dropsavedmodel.pth'))
 
 def make_uncertainty_plots(h, h_2, p, p2):
     fit = stats.norm.pdf(h, np.mean(h), np.std(h))  #this is a fitting indeed
@@ -95,7 +98,7 @@ sample_size_drop = 60
 input_shape = 2
 output_shape = 2
 drop_rte = 0.1
-hidden_neurons = [50, 40, 20, output_shape]
+hidden_neurons = [40, 40, 40, 40,output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -121,9 +124,6 @@ frame_clock = pygame.time.Clock()
 upperarm = ArmPart('upperarm.png', scale=.8)
 lowerarm = ArmPart('lowerarm.png', scale=.9)
 
-training_data = []
-training_label = []
-
 origin = (width / 2.0, height / 2.0)
 
 sprites = []
@@ -147,22 +147,21 @@ def save_data(data, label, iteration):
     np.save(dir_path + '/data/data' + str(iteration), data)
     np.save(dir_path + '/data/label' + str(iteration), label)
 
-
 def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
     desired_transform = rad_desired - rad_current
-    oneeighty = 180/57.2958
+    oneeighty = np.radians(180)
     #This is to make sure the direction I am turning is the most efficient way to turn
     if desired_transform < 0:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = 1 * (1 / (57.2958)) #1 degree per frame
+            rotation_rte = 1 * np.radians(1) #1 degree per frame
         else:
-            rotation_rte = (-1 / (57.2958)) #1 degree per frame
+            rotation_rte = -np.radians(1) #1 degree per frame
     else:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = (-1/ (57.2958))
+            rotation_rte = -np.radians(1)
         else:
-            rotation_rte = 1 * (1 / (57.2958)) #1 degree per frame
+            rotation_rte = 1* np.radians(1) #1 degree per frame
 
     #Number of steps moving at the specified rate
     desired_transform = (abs(desired_transform))
@@ -183,27 +182,27 @@ def print_angle(x, y, origin):
         adjacent = origin[0] - x
         if adjacent == 0.0:
             adjacent = .0001
-        degree = np.arctan(opposite/adjacent) * 57.2958 + 180
+        degree = np.degrees(np.arctan(opposite/adjacent)) + 180
     elif x <= origin[0] and y >= origin[1]:
         opposite = origin[0] - x
         adjacent = y - origin[1]
         if adjacent == 0:
             adjacent = .0001
-        degree = np.arctan(opposite/adjacent) * 57.2958 + 90
+        degree = np.degrees(np.arctan(opposite/adjacent)) + 90
     elif x >= origin[0] and y <= origin[1]:
         opposite = x - origin[0]
         adjacent = origin[1] - y
         if adjacent == 0:
             adjacent = .0001
-        degree = np.arctan(opposite/adjacent) * 57.2958 + 270
+        degree = np.degrees(np.arctan(opposite/adjacent)) + 270
     else:
         adjacent = x - origin[0]
         opposite = y - origin[1]
         if adjacent == 0:
             adjacent = .0001
-        degree = np.arctan(opposite/adjacent) * 57.2958
+        degree = np.degrees(np.arctan(opposite/adjacent))
 
-    return (degree / 57.2958)
+    return np.radians(degree)
 
 
 def convert_normal_angle(t_0, t_1):
@@ -213,28 +212,6 @@ def convert_normal_angle(t_0, t_1):
         t_1 = 2* np.pi + t_1
 
     return t_0, t_1
-
-def calc_origin(theta, hyp):
-    if theta < (np.pi/2.0):
-        x = hyp * np.cos(theta)
-        y = hyp * np.sin(theta)
-
-    elif theta < np.pi:
-        theta = np.pi - theta
-        x = -1 * (hyp * np.cos(theta))
-        y = hyp * np.sin(theta)
-
-    elif theta < (3/2.0) * np.pi:
-        theta = (3/2.0) * np.pi - theta
-        y = -1 * (hyp * np.cos(theta))
-        x =  -1 * hyp * np.sin(theta)
-
-    else:
-        theta = 2 * np.pi - theta
-        x = (hyp * np.cos(theta))
-        y = -1 * hyp * np.sin(theta)
-
-    return int(-y), int(-x)
 
 def return_ordered(seq):
     seen = set()
@@ -262,26 +239,24 @@ while 1:
 
         for iterator in range(sample_size_drop):
             theta_0, theta_1 = model.forward(input_to_model)
-            lst_theta0.append(theta_0.data[0])
-            lst_theta1.append(theta_1.data[0])
+            theta_0, theta_1 = convert_normal_angle(theta_0.data[0], theta_1.data[0])
+            lst_theta0.append(theta_0)
+            lst_theta1.append(theta_1)
         optimizer.zero_grad() #dont want to store gradients
 
         if 'uncertainty_graphs' in locals():
             plt.clf()
 
         uncertainty_graphs = make_uncertainty_plots(sorted(lst_theta0[:-1]), sorted(lst_theta1[:-1]), lst_theta0[-1], lst_theta1[-1])
-        del(lst_theta0)
-        del(lst_theta1)
-        lst_theta0 = []
-        lst_theta1 = []
+        del(lst_theta0[:])
+        del(lst_theta1[:])
 
         model.eval()
         theta_0, theta_1 = model.forward(input_to_model)
-        lst_theta0.append(theta_0.data[0])
-        lst_theta1.append(theta_1.data[0])
+        theta_0, theta_1 = convert_normal_angle(theta_0.data[0], theta_1.data[0])
 
-        theta_0 = theta_0.data[0]
-        theta_1 = theta_1.data[0]
+        lst_theta0.append(theta_0)
+        lst_theta1.append(theta_1)
 
         if (sprites[0][0] >=0):
             theta_add = (theta_1 + theta_0)% (2 * np.pi)
@@ -314,12 +289,7 @@ while 1:
         mouse_state_bool = True
 
         if len(sprites) > 0:
-            if theta_0 == -1 and theta_1 == -1:
-                #If this is a position I cant reach just pop
-                sprites.pop(0)
-            else:
-                training_data.append(sprites[0])
-                sprites.pop(0)
+            sprites.pop(0)
 
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rot_angle),
@@ -343,26 +313,22 @@ while 1:
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (origin[0], origin[1]))
-
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
+
+    '''View text above my graphs'''
 
     text = basicfont.render('Model Uncertainty Graph', True, (0, 0, 0), (255, 255, 255))
     textrect = text.get_rect()
-    # print(textrect)
     textrect[0]+= 1195
     textrect[1]+=185
     display.blit(text, textrect)
     text2 = basicfont.render('60 Stochastic Forward Passes', True, (0, 0, 0), (255, 255, 255))
     textrect2 = text2.get_rect()
-    # print(textrect)
     textrect2[0]+= 1165
     textrect2[1]+=225
     display.blit(text2, textrect2)
 
-
-    # check for quit
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
             pygame.quit()
