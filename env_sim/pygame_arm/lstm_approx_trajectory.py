@@ -37,7 +37,7 @@ input_sz = 4
 hidden0_sz = 40
 hidden1_sz = 30
 hidden2_sz = 15
-output_sz = 2
+output_sz = 4
 learning_rate = .0001
 
 model = ClassicalLSTM(input_sz, hidden0_sz, hidden1_sz, hidden2_sz, output_sz)
@@ -211,7 +211,6 @@ def generate_goal_pos(width, height, l0, l1):
 
 ''' Check if in goal circle '''
 def check_goal_status(eff_pos, goal_pos, radius):
-
     if ((eff_pos[0] - goal_pos[0])**2 + (eff_pos[1] - goal_pos[1])**2 < radius**2 ):
         return True
     else:
@@ -245,7 +244,7 @@ while 1:
             goal_exists_bool = False
         else:
             #prepare data for model
-            input_data = np.asarray([goal_pos[0] -500, goal_pos[1] -500, current_endeff_pos[0] -500, current_endeff_pos[1] -500])
+            input_data = np.asarray([(goal_pos[0] -500 + 420) / 840, (goal_pos[1] -500 + 420) / 840, (current_endeff_pos[0] -500 + 420) / 840, (current_endeff_pos[1] -500 + 420) / 840])
             if torch.cuda.is_available():
                 data = Variable(torch.from_numpy(input_data).float().cuda(), volatile=True)
             else:
@@ -253,8 +252,14 @@ while 1:
 
             output, states = model.forward(data, states)
 
-            theta_0 = output.data[0][0]
-            theta_1 = output.data[0][1]
+            theta_0_sin = output.data[0][0]
+            theta_0_cos = output.data[0][1]
+            theta_1_sin = output.data[0][2]
+            theta_1_cos = output.data[0][3]
+
+            theta_0 = np.arctan2(theta_0_sin, theta_0_cos)
+            theta_1 = np.arctan2(theta_1_sin, theta_1_cos)
+            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
             if (current_endeff_pos[0] >=0):
                 theta_add = (theta_1 + theta_0)% (2 * np.pi)
@@ -272,7 +277,6 @@ while 1:
         prev1 = create_lstm_states(hidden1_sz, 1)
         prev2 = create_lstm_states(hidden2_sz, 1)
         states = [prev0, prev1, prev2]
-
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)

@@ -54,8 +54,8 @@ class FullyConnectedNetwork(nn.Module):
         return out
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
-    # return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/dropsavedmodel.pth'))
+    # return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/deterministicmodel.pth'))
 
 def make_uncertainty_plots(h, h_2, p, p2):
     fit = stats.norm.pdf(h, np.mean(h), np.std(h))  #this is a fitting indeed
@@ -96,7 +96,7 @@ def make_uncertainty_plots(h, h_2, p, p2):
 learning_rate = .0001
 sample_size_drop = 60
 input_shape = 2
-output_shape = 2
+output_shape = 4
 drop_rte = 0.1
 hidden_neurons = [40, 40, 40, 40,output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
@@ -231,15 +231,17 @@ while 1:
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
 
         if torch.cuda.is_available():
-            input_to_model = Variable(torch.from_numpy(np.asarray([sprites[0][0] - origin[0], sprites[0][1] - origin[1]])).float().cuda())
+            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - origin[0] + 420)/840, (sprites[0][1] - origin[1] + 420)/840])).float().cuda())
         else:
-            input_to_model = Variable(torch.from_numpy(np.asarray([sprites[0][0] - origin[0], sprites[0][1] - origin[1]])).float())
-        #collect information about stochastic forward pass
+            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - origin[0] + 420)/840, (sprites[0][1] - origin[1] + 420)/840])).float())
         model.train()
 
         for iterator in range(sample_size_drop):
-            theta_0, theta_1 = model.forward(input_to_model)
-            theta_0, theta_1 = convert_normal_angle(theta_0.data[0], theta_1.data[0])
+            theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
+
+            theta_0 = np.arctan2(theta_0_sin.data[0], theta_0_cos.data[0])
+            theta_1 = np.arctan2(theta_1_sin.data[0], theta_1_cos.data[0])
+            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
             lst_theta0.append(theta_0)
             lst_theta1.append(theta_1)
         optimizer.zero_grad() #dont want to store gradients
@@ -247,16 +249,16 @@ while 1:
         if 'uncertainty_graphs' in locals():
             plt.clf()
 
-        # np.save("theta0.npy", np.asarray(lst_theta0))
-        # np.save("theta1.npy", np.asarray(lst_theta1))
-
         uncertainty_graphs = make_uncertainty_plots(sorted(lst_theta0[:-1]), sorted(lst_theta1[:-1]), lst_theta0[-1], lst_theta1[-1])
         del(lst_theta0[:])
         del(lst_theta1[:])
 
         model.eval()
-        theta_0, theta_1 = model.forward(input_to_model)
-        theta_0, theta_1 = convert_normal_angle(theta_0.data[0], theta_1.data[0])
+        theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
+
+        theta_0 = np.arctan2(theta_0_sin.data[0], theta_0_cos.data[0])
+        theta_1 = np.arctan2(theta_1_sin.data[0], theta_1_cos.data[0])
+        theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         lst_theta0.append(theta_0)
         lst_theta1.append(theta_1)
@@ -302,7 +304,6 @@ while 1:
                           lowerarm.scale * np.sin(lowerarm.rot_angle)]) * -1 + origin[1]
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
-
 
     transform(ua_rect, joints[0], upperarm)
     transform(fa_rect, joints[1], lowerarm)

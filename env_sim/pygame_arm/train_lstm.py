@@ -24,9 +24,9 @@ for element in lst_of_arr:
 arr_lst = []
 for element in lst_of_arr:
     difference = largest_seq - element.shape[0]
-    element = np.concatenate((element, np.zeros((difference, 3, 2)))) #zero padding
-    # for index in range(difference):
-    #     element = np.concatenate((element, np.expand_dims(element[-1],axis=0))) #final element padding
+    # element = np.concatenate((element, np.zeros((difference, 8)))) #zero padding
+    for index in range(difference):
+        element = np.concatenate((element, np.expand_dims(element[-1],axis=0))) #final element padding
     arr_lst.append(element)
 
 arr = np.asarray(arr_lst)
@@ -36,20 +36,14 @@ length = arr.shape[0]
 trn = arr[:int(length * .75)]
 tet = arr[int(length * .75):]
 
-train_dat = trn[:,:,:-1]
-train_lab = trn[:,:,-1:]
-train_data = train_dat.reshape((train_dat.shape[0], train_dat.shape[1], -1))
-train_label = train_lab.reshape((train_lab.shape[0], train_lab.shape[1], -1))
-train_label = np.transpose(train_label, (1, 0, 2))
-train_data = np.transpose(train_data, (1, 0, 2))
+train_data = trn[:,:,:4]
+train_label = trn[:,:,4:]
 
-test_dat = tet[:,:,:-1]
-test_lab = tet[:,:,-1:]
-test_data = test_dat.reshape((test_dat.shape[0], test_dat.shape[1], -1))
-test_label = test_lab.reshape((test_lab.shape[0], test_lab.shape[1], -1))
-test_label = np.transpose(test_label, (1, 0, 2))
-test_data = np.transpose(test_data, (1, 0, 2))
+test_data = tet[:,:,:4]
+test_label = tet[:,:,4:]
 
+print("max min", np.max(train_data), np.min(train_data), np.max(train_label), np.min(train_label))
+print("max min", np.max(test_data), np.min(test_data), np.max(test_label), np.min(test_label))
 
 '''Set up model'''
 class ClassicalLSTM(nn.Module):
@@ -60,10 +54,14 @@ class ClassicalLSTM(nn.Module):
         self.lstm_2 = nn.LSTMCell(hidden1_sz, hidden2_sz)
         self.fcn1 = nn.Linear(hidden2_sz, output_sz)
 
+        # self.drop = nn.Dropout(.3)
+
+
     def forward(self, x, states):
         hx_0, cx_0 = self.lstm_0(x, states[0])
         hx_1, cx_1 = self.lstm_1(hx_0, states[1])
         hx_2, cx_2 = self.lstm_2(hx_1, states[2])
+        # hx_2 = self.drop(hx_2)
         x = self.fcn1(hx_2)
         return x, [[hx_0, cx_0], [hx_1, cx_1], [hx_2, cx_2]]
 
@@ -71,7 +69,7 @@ input_sz = 4
 hidden0_sz = 40
 hidden1_sz = 30
 hidden2_sz = 15
-output_sz = 2
+output_sz = 4
 learning_rate = .0001
 
 model = ClassicalLSTM(input_sz, hidden0_sz, hidden1_sz, hidden2_sz, output_sz)
@@ -191,7 +189,7 @@ def main():
     global train_label
     global test_data
     global test_label
-    epochs = 5000
+    epochs = 20000
     best_loss = sys.maxsize
 
     for epoch in range(epochs):

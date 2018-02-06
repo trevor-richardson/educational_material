@@ -1,9 +1,6 @@
 import numpy as np
 import pygame
 import pygame.locals
-
-import numpy as np
-import pygame
 import sys
 import os
 from arm_part import ArmPart
@@ -166,7 +163,6 @@ def generate_goal_pos(width, height, l0, l1):
 
 ''' Check if in goal circle '''
 def check_goal_status(eff_pos, goal_pos, radius):
-
     if ((eff_pos[0] - goal_pos[0])**2 + (eff_pos[1] - goal_pos[1])**2 < radius**2 ):
         return True
     else:
@@ -192,9 +188,10 @@ def create_dataset(current_pos, target_ja, goal_pos):
 
     data_lst = []
     for iterator in range(len(current_pos)):
-        data_lst.append([goal_pos, current_pos[iterator], target_ja[iterator]])
+        data_lst.append([(goal_pos[0] + 420) / 840, (goal_pos[1] + 420) / 840, (current_pos[iterator][0] + 420) / 840, (current_pos[iterator][1] + 420) / 840, np.sin(target_ja[iterator][0]), np.cos(target_ja[iterator][0]), np.sin(target_ja[iterator][1]), np.cos(target_ja[iterator][1])])
 
-    x = np.random.binomial(1, .8) #creates 0 or 1
+    # x = np.random.binomial(1, .8) #creates 0 or 1
+
     save_data(np.asarray(data_lst), str(np.random.randint(1000000)))
 
 while 1:
@@ -204,6 +201,12 @@ while 1:
     if goal_exists_bool:
         reached_goal = check_goal_status(current_endeff_pos, (goal_pos[0] -500, goal_pos[1]-500), 7) #seven represents the radius I accept as acceptable to goal point
         if reached_goal:
+            #here is where I add the final position to the list and the target joint angle
+            current_pos_lst.append(current_endeff_pos)
+            current_pos_lst.append((goal_pos[0] -500, goal_pos[1]-500))
+            theta_0, theta_1 = inv_kin_2arm(goal_pos[0] -500, goal_pos[1]-500, upperarm.scale, lowerarm.scale - hand_offset)
+            target_ja_lst.append([theta_0, theta_1])
+            target_ja_lst.append([theta_0, theta_1])
             create_dataset(current_pos_lst, target_ja_lst, (goal_pos[0] -500, goal_pos[1]-500))
             del(current_pos_lst[:])
             del(target_ja_lst[:])
@@ -263,6 +266,7 @@ while 1:
         ua_image, ua_rect = upperarm.rotate(0.000)
         mouse_state_bool = True
         if len(sprites) > 0:
+            #here is where I need to add the last bit to the list
             sprites.pop(0)
 
     joints_x = np.cumsum([0,
@@ -284,8 +288,8 @@ while 1:
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
-    pygame.draw.circle(display, black, (int(current_endeff_pos[0]+origin[0]), int(current_endeff_pos[1]+origin[1])), 10)
-    pygame.draw.circle(display, red, (int(origin[0]), int(origin[1])), 10)
+    pygame.draw.circle(display, black, (int(current_endeff_pos[0]+origin[0]), int(current_endeff_pos[1]+origin[1])), 7)
+    # pygame.draw.circle(display, red, (int(origin[0]), int(origin[1])), 10)
 
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
