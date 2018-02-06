@@ -13,15 +13,17 @@ import os
 #network model
 '''global variables'''
 batch_sz = 2056
-epochs = 5000
+epochs = 10000
 learning_rate = .0001
 input_shape = 2
-output_shape = 2
+output_shape = 4
 drop_rte = 0.1
 hidden_neurons = [40, 40, 40, 40,output_shape]
 
 #load the numpy array
 dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
+
+normalize_data_bool = True
 
 '''Simple Regression FCN Model'''
 class FullyConnectedNetwork(nn.Module):
@@ -57,6 +59,21 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 def save_model(model):
     torch.save(model.state_dict(), 'mysavedmodel.pth')
+
+def normalize(arr, normalize_type):
+    #type 0 is between 0 and pi
+    if normalize_type == 0:
+        for i in range(int(arr.size)):
+            arr[i] = (arr[i]) / (np.pi)
+        return arr
+    elif normalize_type == 1: #type 1 is between 0 and 2 pi
+        for i in range(int(arr.size)):
+            arr[i] = (arr[i]) / (2 * np.pi)
+        return arr
+    else:     #type 2 is between -420 and 420
+        for i in range(int(arr.size)):
+            arr[i] = (arr[i]- (-420)) / (840)
+        return arr
 
 '''train'''
 def train_model(epoch, data, label):
@@ -131,22 +148,32 @@ else:
 
 '''Load data'''
 train = np.load(dir_path + '/data/inv_kin_aprox/train.npy')
-train = train.astype('float64')
+# train = train.astype('float64')
 
 test = np.load(dir_path + '/data/inv_kin_aprox/test.npy')
-test = test.astype('float64')
+# test = test.astype('float64')
 
 best_loss = float(sys.maxsize)
 
+if normalize_data_bool:
+    print("Normalizing Input and Output")
+
+    train[:,0] = normalize(train[:,0], 2)
+    train[:,1] = normalize(train[:,1], 2)
+
+    test[:,0] = normalize(test[:,0], 2)
+    test[:,1] = normalize(test[:,1], 2)
+
 '''Train and Test Our Model'''
+print("Training")
 for epoch in range(epochs):
-    #shuffle data
+    # shuffle data
     np.random.shuffle(train)
-    data = train[:,0]
-    label = train[:,1]
+    data = train[:,:2]
+    label = train[:,2:]
     np.random.shuffle(test)
-    test_data = test[:,0]
-    test_label = test[:,1]
+    test_data = test[:,:2]
+    test_label = test[:,2:]
 
     train_model(epoch, data, label)
     if epoch % 1 == 0 and epoch != 0:

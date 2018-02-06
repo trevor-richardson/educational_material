@@ -229,8 +229,7 @@ while 1:
         num_steps_1, rotate_rte_1 = rot_it(cur_radians_1, theta_add)
         lamda += .05
 
-        if lamda == 1:
-            lamda = 0
+
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
@@ -287,7 +286,9 @@ while 1:
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
-    if current_state != 4:
+    if current_state == 0:
+        f=0
+    elif current_state != 4:
         text = basicfont.render('Collecting Data', True, (0, 0, 0), (255, 255, 255))
         textrect = text.get_rect()
         display.blit(text, textrect)
@@ -300,6 +301,15 @@ while 1:
         if event.type == pygame.locals.QUIT:
             pygame.quit()
             sys.exit()
+
+    if lamda > 20 and current_state == 4:
+        current_state = 0
+        lamda = 0
+        if half_circle_bool:
+            half_circle_bool = False
+        else:
+            half_circle_bool = True
+        del(joint_data[:])
 
     pygame.display.update()
     frame_clock.tick(30)

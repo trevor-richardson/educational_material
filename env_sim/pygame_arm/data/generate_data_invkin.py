@@ -67,8 +67,8 @@ def main():
         if theta_0 == -20 and theta_1 == -20:
             f = 0
         else:
-            # theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-            lst.append([[x - 500.0, y - 500.0], [theta_0, theta_1]])
+            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+            lst.append([x - 500.0, y - 500.0, np.sin(theta_0), np.cos(theta_0), np.sin(theta_1), np.cos(theta_1)])
 
     data = convert_lst_np(lst)
     save_data(data, "train")
@@ -81,8 +81,8 @@ def main():
         if theta_0 == -20 and theta_1 == -20:
             f = 0
         else:
-            # theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-            lst.append([[x - 500.0, y - 500.0], [theta_0, theta_1]])
+            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+            lst.append([x - 500.0, y - 500.0, np.sin(theta_0), np.cos(theta_0), np.sin(theta_1), np.cos(theta_1)])
 
     data = convert_lst_np(lst)
     save_data(data, "test")

@@ -28,19 +28,19 @@ class FullyConnectedNetwork(nn.Module):
         self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
         self.h_4 = nn.Linear(num_hidden_neurons[3], num_hidden_neurons[4])
 
-        # self.drop = nn.Dropout(dropout_rte)
+        self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
         # x = self.drop(x)
 
         out_0 = F.tanh(self.h_0(x))
-        # out_0 = self.drop(out_0)
+        out_0 = self.drop(out_0)
 
         out_1 = F.tanh(self.h_1(out_0))
-        # out_1 = self.drop(out_1)
+        out_1 = self.drop(out_1)
 
         out_2 = F.tanh(self.h_2(out_1))
-        # out_2 = self.drop(out_2)
+        out_2 = self.drop(out_2)
 
         out_3 = F.tanh(self.h_3(out_2))
 
@@ -48,11 +48,11 @@ class FullyConnectedNetwork(nn.Module):
         return out
 
 def load_model(model):
-    # return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/deterministicmodel.pth'))
+    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/mysavedmodel.pth'))
+    # return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/saved_models/deterministicmodel.pth'))
 
 input_shape = 2
-output_shape = 2
+output_shape = 4
 drop_rte = 0.1
 hidden_neurons = [40, 40, 40, 40,output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
@@ -70,7 +70,7 @@ white = (255, 255, 255)
 linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 
 pygame.init()
-
+pygame.display.set_caption('Fully Connected Network Approximating Inverse Kinematics')
 width = 1000
 height = 1000
 display = pygame.display.set_mode((width, height))
@@ -79,8 +79,6 @@ frame_clock = pygame.time.Clock()
 upperarm = ArmPart('upperarm.png', scale=.8)
 lowerarm = ArmPart('lowerarm.png', scale=.9)
 
-training_data = []
-training_label = []
 
 origin = (width / 2.0, height / 2.0)
 
@@ -177,13 +175,13 @@ while 1:
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
         if torch.cuda.is_available():
-            input_to_model = Variable(torch.from_numpy(np.asarray([sprites[0][0] - 500.0, sprites[0][1] - 500.0])).float().cuda(), volatile=True)
+            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - 500.0 + 420)/840, (sprites[0][1] - 500.0 + 420)/840])).float().cuda(), volatile=True)
         else:
-            input_to_model = Variable(torch.from_numpy(np.asarray([sprites[0][0] - 500.0, sprites[0][1] - 500.0])).float(), volatile=True)
-        theta_0, theta_1 = model.forward(input_to_model)
-        theta_0 = theta_0.data[0]
-        theta_1 = theta_1.data[0]
+            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - 500.0 + 420)/840, (sprites[0][1] - 500.0 + 420)/840])).float(), volatile=True)
+        theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
 
+        theta_0 = np.arctan2(theta_0_sin.data[0], theta_0_cos.data[0])
+        theta_1 = np.arctan2(theta_1_sin.data[0], theta_1_cos.data[0])
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         if (sprites[0][0] >=0):
@@ -215,11 +213,7 @@ while 1:
         ua_image, ua_rect = upperarm.rotate(0.000)
 
         if len(sprites) > 0:
-            if theta_0 == -1 and theta_1 == -1:
-                sprites.pop(0)
-            else:
-                training_data.append(sprites[0])
-                sprites.pop(0)
+            sprites.pop(0)
 
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rot_angle),

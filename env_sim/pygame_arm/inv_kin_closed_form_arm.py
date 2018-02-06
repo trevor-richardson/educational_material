@@ -15,7 +15,7 @@ white = (255, 255, 255)
 linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
 
 pygame.init()
-
+pygame.display.set_caption('Inverse Kinematics Closed Form Solution')
 width = 1000
 height = 1000
 display = pygame.display.set_mode((width, height))
@@ -47,7 +47,6 @@ def calc_rot(rad_current, rad_desired):
     #this is how many radians I need to move in total
     desired_transform = rad_desired - rad_current
     oneeighty = np.radians(180)
-    #This is to make sure the direction I am turning is the most efficient way to turn
     if desired_transform < 0:
         if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
             rotation_rte = 1 * np.radians(1) #1 degree per frame
@@ -59,7 +58,6 @@ def calc_rot(rad_current, rad_desired):
         else:
             rotation_rte = 1* np.radians(1) #1 degree per frame
 
-    #Number of steps moving at the specified rate
     desired_transform = (abs(desired_transform))
     if desired_transform > (np.pi):
         desired_transform = 2*np.pi - desired_transform
@@ -147,7 +145,6 @@ while 1:
             num_steps_0 = 0
             num_steps_1 = 0
         else:
-            # print(theta_0)
             theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
             ''' Here is where I collected theta from before'''
 
@@ -208,6 +205,7 @@ while 1:
         if event.type == pygame.locals.QUIT:
             pygame.quit()
             sys.exit()
+
 
     pygame.display.update()
     frame_clock.tick(30)

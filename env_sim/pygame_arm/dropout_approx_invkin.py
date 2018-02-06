@@ -247,6 +247,9 @@ while 1:
         if 'uncertainty_graphs' in locals():
             plt.clf()
 
+        # np.save("theta0.npy", np.asarray(lst_theta0))
+        # np.save("theta1.npy", np.asarray(lst_theta1))
+
         uncertainty_graphs = make_uncertainty_plots(sorted(lst_theta0[:-1]), sorted(lst_theta1[:-1]), lst_theta0[-1], lst_theta1[-1])
         del(lst_theta0[:])
         del(lst_theta1[:])
