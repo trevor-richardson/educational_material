@@ -57,6 +57,7 @@ drop_rte = 0.1
 hidden_neurons = [40, 40, 40, 40,output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 load_model(model)
+
 if torch.cuda.is_available():
     print("Using GPU acceleration")
     model.cuda()
@@ -76,11 +77,11 @@ height = 1000
 display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
+origin = (width / 2.0, height / 2.0)
 upperarm = ArmPart('upperarm.png', scale=.8)
 lowerarm = ArmPart('lowerarm.png', scale=.9)
 
 
-origin = (width / 2.0, height / 2.0)
 
 sprites = []
 num_steps_0 = 0
