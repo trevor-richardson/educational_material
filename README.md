@@ -1,22 +1,26 @@
 # Intel Educational Material
 Research assistant required duty to create educational material for Intel on machine learning and robotics
 
-
-
 ## env_sim sub folder
+Real time neural network uncertainty function approximation robotic demo for inverse kinematics problem.
 ```
   python3 dropout_approx_invkin.py
 ```
 ![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/stoch_for_passes.gif)
+Principle component analysis using one principle component on a
+```
+  python3 pca_simulation.py
+```
+![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/pca.gif)
+Real time neural network function approximation robotic demo for inverse kinematics problem.
 ```
   python3 approx_invkin.py
 ```
+Inverse kinematics closed form solution demo.
 ```
   python3 inv_kin_closed_form_arm.py
 ```
-```
-  python3 pva_simulation.py
-```
+
 
 ## simple_fcn sub folder
 This folder displays three types of neural networks and their performance on the MNIST dataset
