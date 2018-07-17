@@ -6,7 +6,7 @@ Real time neural network uncertainty function approximation robotic demo for inv
 ```
   python3 dropout_approx_invkin.py
 ```
-![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/stoch_for_passes.gif | width=100)
+![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/stoch_for_passes.gif =100x)
 Principle component analysis using one principle component
 ```
   python3 pca_simulation.py
