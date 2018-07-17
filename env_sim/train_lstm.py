@@ -10,11 +10,10 @@ import glob
 
 '''Prepare Data'''
 lst_of_arr = []
-filenames = glob.glob('/home/trevor/coding/educational_material/env_sim/pygame_arm/data/imitation_learning/*.npy')
+filenames = glob.glob('./data/imitation_learning/*.npy')
 
 for element in filenames:
     lst_of_arr.append(np.load(element))
-    # print(element, lst_of_arr[-1].shape)
 
 largest_seq = 0
 for element in lst_of_arr:

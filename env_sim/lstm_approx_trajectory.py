@@ -31,7 +31,7 @@ class ClassicalLSTM(nn.Module):
         return x, [[hx_0, cx_0], [hx_1, cx_1], [hx_2, cx_2]]
 
 def load_model(model):
-    return model.load_state_dict(torch.load('/home/trevor/coding/educational_material/env_sim/pygame_arm/lstmsavedmodel.pth'))
+    return model.load_state_dict(torch.load('./lstmsavedmodel.pth'))
 
 input_sz = 4
 hidden0_sz = 40
