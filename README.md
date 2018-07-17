@@ -22,7 +22,7 @@ Real time neural network function approximation robotic demo for inverse kinemat
 ```
   python approx_invkin.py
 ```
-<img src="https://github.com/trevor-richardson/educational_material/blob/master/visualizations/invkin_approx.gif" width="500">
+<img src="https://github.com/trevor-richardson/educational_material/blob/master/visualizations/inv_kin_approx.gif" width="500">
 
 ---
 
@@ -30,7 +30,7 @@ Inverse kinematics closed form solution demo.
 ```
   python inv_kin_closed_form_arm.py
 ```
-<img src="https://github.com/trevor-richardson/educational_material/blob/master/visualizations/invkin_closedform.gif" width="500">
+<img src="https://github.com/trevor-richardson/educational_material/blob/master/visualizations/inv_kin_closedform.gif" width="500">
 
 
 ## simple_fcn sub folder
