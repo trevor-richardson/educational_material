@@ -6,12 +6,12 @@ Real time neural network uncertainty function approximation robotic demo for inv
 ```
   python3 dropout_approx_invkin.py
 ```
-![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/stoch_for_passes.gif)
-Principle component analysis using one principle component on a
+![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/stoch_for_passes.gif | width=100)
+Principle component analysis using one principle component
 ```
   python3 pca_simulation.py
 ```
-![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/pca.gif)
+![alt-text](https://github.com/trevor-richardson/educational_material/blob/master/visualizations/pca.gif | width=100)
 Real time neural network function approximation robotic demo for inverse kinematics problem.
 ```
   python3 approx_invkin.py
