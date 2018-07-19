@@ -20,7 +20,7 @@ Educational materials created for Intel Corporation on machine learning and robo
 ---
 
 \
-**Real time neural network function approximation robotic demo for inverse kinematics problem.**
+**Real time neural network function approximation; robotic demo for inverse kinematics problem.**
 ```
   python approx_invkin.py
 ```
