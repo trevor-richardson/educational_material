@@ -1,8 +1,8 @@
 # Intel Educational Material
-Research assistant required duty to create educational material for Intel on machine learning and robotics
+Educational materials created for Intel Corporation on machine learning and robotics
 
 ## env_sim sub folder
-Real time neural network uncertainty function approximation robotic demo for inverse kinematics problem.
+**Real-time neural network uncertainty function approximation; robotic demo for inverse kinematics problem.**
 ```
   python dropout_approx_invkin.py
 ```
@@ -10,7 +10,8 @@ Real time neural network uncertainty function approximation robotic demo for inv
 
 ---
 
-Principle component analysis using one principle component
+\
+**Principle component analysis using one principle component.**
 ```
   python pca_simulation.py
 ```
@@ -18,7 +19,8 @@ Principle component analysis using one principle component
 
 ---
 
-Real time neural network function approximation robotic demo for inverse kinematics problem.
+\
+**Real time neural network function approximation robotic demo for inverse kinematics problem.**
 ```
   python approx_invkin.py
 ```
@@ -26,7 +28,8 @@ Real time neural network function approximation robotic demo for inverse kinemat
 
 ---
 
-Inverse kinematics closed form solution demo.
+\
+**Inverse kinematics closed form solution demo.**
 ```
   python inv_kin_closed_form_arm.py
 ```
