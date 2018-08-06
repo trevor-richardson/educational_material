@@ -37,8 +37,8 @@ Educational materials created for Intel Corporation on machine learning and robo
 
 
 ## simple_fcn sub folder
-This folder displays three types of neural networks and their performance on the MNIST dataset
-1) Vanilla fully connected network
+Neural networks and their performance on the MNIST dataset.
+1) Fully connected basic network
 ```
   python simple_fcn.py
 ```
@@ -48,7 +48,7 @@ This folder displays three types of neural networks and their performance on the
 ```
 3) Fully connected network that utilizes stochastic forward passes
 ```
-  python sfp_fcn.py
+  python sfp_fcn.py 
 ```
 
 
