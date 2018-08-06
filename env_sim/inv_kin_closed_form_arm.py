@@ -8,6 +8,11 @@ import sys
 import os
 from arm_part import ArmPart
 
+
+'''
+Check integer division and double division
+'''
+
 black = (0, 0, 0)
 gold = (255, 215, 0)
 red = (255, 0, 0)
@@ -114,6 +119,7 @@ def inv_kin_2arm(x, y, l0, l1):
         if b == 0:
             return -20, -20
         theta_0 = np.arctan2(a, b)
+    # print(theta_0, theta_1)
     return theta_0, theta_1
 
 def convert_normal_angle(t_0, t_1):
@@ -138,6 +144,7 @@ while 1:
         sprites = return_ordered(sprites)
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
+        print("in here")
 
         theta_0, theta_1 = inv_kin_2arm(sprites[0][0] - origin[0], sprites[0][1] - origin[1], upperarm.scale, lowerarm.scale - hand_offset) #error possible if width isnt the dimension of interest
         if theta_1 == -20 and theta_0 == -20:
@@ -149,12 +156,15 @@ while 1:
             ''' Here is where I collected theta from before'''
 
             if (sprites[0][0] >=0):
-                theta_add = (theta_1 + theta_0)% (2 * np.pi)
+                theta_add = (theta_1 + theta_0) % (2 * np.pi)
             else:
-                theta_add = (theta_1 - theta_0)% (2 * np.pi)
+                theta_add = (theta_1 - theta_0) % (2 * np.pi)
 
             num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
             num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
+            print(type(num_steps_0), type(rotate_rte_0))
+            print(type(num_steps_1), type(rotate_rte_1))
+            # print(num_steps_0, num_steps_1)
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
@@ -172,7 +182,7 @@ while 1:
         num_steps_0 += -1
         num_steps_1 += -1
 
-    else:
+    if num_steps_1 == 0 and num_steps_0 == 0: #first edit in order to stabalize trajectory for python2 support
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
 

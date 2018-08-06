@@ -10,7 +10,6 @@ from torchvision import datasets, transforms
 from torch.autograd import Variable
 import numpy as np
 
-
 '''global variables'''
 batch_sz = 64
 epochs = 100
@@ -22,18 +21,19 @@ hidden_neurons = [250, 75, output_shape] #Depending on the number of layers in y
 
 '''Data loader for MNIST'''
 kwargs = {'num_workers': 2, 'pin_memory': True} if torch.cuda.is_available() else {}
+
 train_loader = torch.utils.data.DataLoader(
     datasets.MNIST('../data', train=True, download=True,
                    transform=transforms.Compose([
                        transforms.ToTensor()
                    ])),
-    batch_size=batch_sz, shuffle=True, **kwargs, drop_last=True)
+    batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 test_loader = torch.utils.data.DataLoader(
     datasets.MNIST('../data', train=False, transform=transforms.Compose([
                        transforms.ToTensor(),
                    ])),
-    batch_size=batch_sz, shuffle=True, **kwargs, drop_last=True)
+    batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 
 '''Model creation'''
@@ -56,6 +56,7 @@ class FullyConnectedNetwork(nn.Module):
 model = FullyConnectedNetwork(input_shape, hidden_neurons)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+print(model)
 
 '''train'''
 def train(epoch):

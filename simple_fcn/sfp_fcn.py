@@ -26,13 +26,13 @@ train_loader = torch.utils.data.DataLoader(
                    transform=transforms.Compose([
                        transforms.ToTensor()
                    ])),
-    batch_size=batch_sz, shuffle=True, **kwargs, drop_last=True)
+    batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 test_loader = torch.utils.data.DataLoader(
     datasets.MNIST('../data', train=False, transform=transforms.Compose([
                        transforms.ToTensor(),
                    ])),
-    batch_size=batch_sz, shuffle=True, **kwargs, drop_last=True)
+    batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 
 '''Model creation'''
@@ -61,7 +61,7 @@ class FullyConnectedNetwork(nn.Module):
 
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
+print(model)
 '''train'''
 def train(epoch):
     global model
