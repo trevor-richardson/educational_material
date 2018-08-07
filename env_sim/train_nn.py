@@ -1,6 +1,8 @@
 '''
 This code contains a neural network that is regressing inv_kin for the 2 joint arm simulation
 '''
+from __future__ import division
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

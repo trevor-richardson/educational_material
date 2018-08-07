@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 import pygame
 import pygame.locals
@@ -99,7 +101,6 @@ def transform(rect, container, part):
     rect.center += np.asarray(container)
     rect.center += np.array([np.cos(part.rot_angle) * part.offset,
                             -np.sin(part.rot_angle) * part.offset])
-
 
 def calc_rot(rad_current, rad_desired):
     desired_transform = rad_desired - rad_current
@@ -318,13 +319,9 @@ while 1:
     display.blit(fa_image, fa_rect)
 
 
-
-
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
 
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
-
-
 
 
     # draw circle at goal position
