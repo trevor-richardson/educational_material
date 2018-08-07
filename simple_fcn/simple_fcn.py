@@ -1,6 +1,11 @@
 '''
 The following is a fully connected network that learns how to predict a specific mnist number
+
+Developed by:
+Trevor Woods Richardson
+trevor-richardson.github.io
 '''
+from __future__ import division
 
 import torch
 import torch.nn as nn
@@ -36,7 +41,14 @@ test_loader = torch.utils.data.DataLoader(
     batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 
-'''Model creation'''
+'''
+Model Creation
+
+Simple FCN with 3 layers
+Sigmoid activation functions
+
+Forward method defines mathematical operations during forward pass of the network
+'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons):
         super(FullyConnectedNetwork, self).__init__()
@@ -58,7 +70,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 print(model)
 
-'''train'''
+'''Train'''
 def train(epoch):
     global model
     global optimizer
@@ -68,6 +80,7 @@ def train(epoch):
     train_loss = 0
     train_step_counter = 0
 
+    #Loading batches of input target pairs in order to train the neural network
     for batch_idx, (data, target) in enumerate(train_loader):
         #flatten the image data (64, 1, 28, 28) -> (64, 784)
         data = data.view(-1, input_shape)
@@ -91,7 +104,7 @@ def train(epoch):
 
 
 
-'''test'''
+'''Test'''
 def test():
     global model
     global batch_sz
@@ -101,6 +114,7 @@ def test():
     correct = 0
     test_steps = 0
 
+    #Loading distinct batches of input target pairs in order to validate the performance of the learned weights
     for data, target in test_loader:
         data = data.view(-1, input_shape)
 

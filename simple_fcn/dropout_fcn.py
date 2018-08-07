@@ -1,6 +1,12 @@
 '''
-The following is a fully connected network that utilizes dropout
+The following is a fully connected network that utilizes dropout during training
+in order to avoid overfitting.
+
+Developed by:
+Trevor Woods Richardson
+trevor-richardson.github.io
 '''
+from __future__ import division
 
 import torch
 import torch.nn as nn
@@ -37,7 +43,13 @@ test_loader = torch.utils.data.DataLoader(
     batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 
-'''Model creation'''
+'''
+Model Creation
+
+The following defines a 3 layer neural network where the forward function
+defines the mathematical operations during a single forward pass of the
+neural network
+'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
         super(FullyConnectedNetwork, self).__init__()
@@ -63,19 +75,20 @@ class FullyConnectedNetwork(nn.Module):
 
 
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate) #Define optimizer to be Adam
 print(model)
 
-'''train'''
+'''Train'''
 def train(epoch):
     global model
     global optimizer
 
-    model.train()
+    model.train() #Necessary for PyTorch to know if it should save gradient information. Important for dropout mode
     optimizer.zero_grad()
     train_loss = 0
     train_step_counter = 0
 
+    #Loading batches of input target pairs in order to train the neural network
     for batch_idx, (data, target) in enumerate(train_loader):
         #flatten the image data (64, 1, 28, 28) -> (64, 784)
         data = data.view(-1, input_shape)
@@ -99,16 +112,17 @@ def train(epoch):
 
 
 
-'''test'''
+'''Test'''
 def test():
     global model
     global batch_sz
-    model.eval()
+    model.eval() #PyTorch will not use dropout or save gradient information during forward passes in eval mode
 
     test_loss = 0
     correct = 0
     test_steps = 0
 
+    #Loading distinct batches of input target pairs in order to validate the performance of the learned weights
     for data, target in test_loader:
         data = data.view(-1, input_shape)
 
@@ -139,6 +153,5 @@ for epoch in range(epochs):
     train(epoch)
     if epoch % 5 == 0 and epoch != 0:
         test()
-
 
 test()

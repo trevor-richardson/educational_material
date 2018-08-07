@@ -1,4 +1,13 @@
-'''The following is an example fully connected neural network that uses stochastic forward passes at inference time '''
+'''
+The following is an example fully connected neural network
+that uses stochastic forward passes at inference time
+
+Developed by:
+Trevor Woods Richardson
+trevor-richardson.github.io
+'''
+
+from __future__ import division
 
 import torch
 import torch.nn as nn
@@ -35,7 +44,16 @@ test_loader = torch.utils.data.DataLoader(
     batch_size=batch_sz, shuffle=True, drop_last=True, **kwargs)
 
 
-'''Model creation'''
+'''
+Model Creation
+
+FCN with 3 layers
+Sigmoid activation functions
+
+Dropout used in the first two layers
+The forward function defines the mathematical
+operations during the network's forward pass
+'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
         super(FullyConnectedNetwork, self).__init__()
@@ -62,7 +80,8 @@ class FullyConnectedNetwork(nn.Module):
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 print(model)
-'''train'''
+
+'''Train'''
 def train(epoch):
     global model
     global optimizer
@@ -72,6 +91,7 @@ def train(epoch):
     train_loss = 0
     train_step_counter = 0
 
+    #Loading batches of input target pairs in order to train the neural network
     for batch_idx, (data, target) in enumerate(train_loader):
         #flatten the image data (64, 1, 28, 28) -> (64, 784)
         data = data.view(-1, input_shape)
@@ -93,8 +113,7 @@ def train(epoch):
         epoch, train_loss.cpu().numpy()[0]/train_step_counter))
 
 
-
-'''test'''
+'''Test'''
 def test():
     global model
     global batch_sz
@@ -106,6 +125,7 @@ def test():
 
     distribution = np.zeros((batch_sz, 10))
 
+    #Loading distinct batches of input target pairs in order to validate the performance of the learned weights
     for data, target in test_loader:
         data = data.view(-1, input_shape)
 
