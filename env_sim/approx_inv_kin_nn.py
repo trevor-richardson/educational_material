@@ -2,6 +2,8 @@
 This simulation executes a trained neural network that approximates the
 closed form solution given by 2 axis inv kin
 '''
+from __future__ import division
+
 import numpy as np
 import pygame
 import pygame.locals
@@ -207,7 +209,7 @@ while 1:
         num_steps_0 += -1
         num_steps_1 += -1
 
-    else:
+    if num_steps_1 == 0 and num_steps_0 == 0: #first edit in order to stabalize trajectory for python2 support
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
 
