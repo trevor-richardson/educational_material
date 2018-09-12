@@ -63,7 +63,9 @@ class FullyConnectedNetwork(nn.Module):
 
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+print("\n")
 print(model)
+print("\n\n")
 
 
 '''Train'''
@@ -135,9 +137,11 @@ def test():
 if torch.cuda.is_available():
     model.cuda()
     print("Using GPU Acceleration")
+else:
+    print("Not Using GPU Acceleration")
 
 
-'''Train and Test Our Model'''
+'''Train and test our model'''
 for epoch in range(epochs):
     train(epoch)
     if epoch % 5 == 0 and epoch != 0:

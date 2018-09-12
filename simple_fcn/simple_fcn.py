@@ -13,13 +13,13 @@ import numpy as np
 
 
 
-'''global variables'''
+'''Global variables'''
 batch_sz = 64
 epochs = 100
 learning_rate = .0001
 input_shape = 784
 output_shape = 10
-hidden_neurons = [250, 75, output_shape] #Depending on the number of layers in your nueral network this is the number of neurons for hidden at layer x
+hidden_neurons = [250, 75, output_shape] #Depending on the number of layers in your nueral network this is the number of neurons for hidden layer x
 
 
 '''Data loader for MNIST'''
@@ -55,24 +55,26 @@ class FullyConnectedNetwork(nn.Module):
         out = self.h_2(out_1)
         return out
 
+model = FullyConnectedNetwork(input_shape, hidden_neurons) #Initialize model
+optimizer = optim.Adam(model.parameters(), lr=learning_rate) #Initialize optimizer
 
-model = FullyConnectedNetwork(input_shape, hidden_neurons)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
+print("\n")
 print(model)
+print("\n\n")
 
-'''train'''
+
+'''Train'''
 def train(epoch):
     global model
     global optimizer
 
-    model.train()
-    optimizer.zero_grad()
+    model.train() #Set mode to be training mode for the model (affects batchnorm, dropout ect.)
+    optimizer.zero_grad() #Zero all gradients
     train_loss = 0
     train_step_counter = 0
 
     for batch_idx, (data, target) in enumerate(train_loader):
-        #flatten the image data (64, 1, 28, 28) -> (64, 784)
+        #Flatten the image data (64, 1, 28, 28) -> (64, 784)
         data = data.view(-1, input_shape)
         #Make tensor cuda tensor if cuda is available
         if torch.cuda.is_available():
@@ -80,21 +82,19 @@ def train(epoch):
         #Make data and target Variable tensors
         data, target = Variable(data), Variable(target)
 
-
         output = model(data)
         loss = F.cross_entropy(output, target)
         train_loss+=loss.data
         train_step_counter +=1
 
-        loss.backward()
-        optimizer.step()
+        loss.backward() #Calculate dloss/dx
+        optimizer.step() #Update weights of neural network based on gradients
 
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
         epoch, train_loss.cpu().numpy()/train_step_counter))
 
 
-
-'''test'''
+'''Test'''
 def test():
     global model
     global batch_sz
@@ -109,12 +109,11 @@ def test():
 
         if torch.cuda.is_available():
             data, target = data.cuda(), target.cuda()
-        #setting volatile to true makes the inference step faster because no gradient information is saved
         data, target = Variable(data), Variable(target)
 
         output = model(data)
-        test_loss += F.cross_entropy(output, target).item() # sum up batch loss
-        pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
+        test_loss += F.cross_entropy(output, target).item() # Sum up batch loss
+        pred = output.data.max(1, keepdim=True)[1] #Get the index of the max log-probability
         correct += pred.eq(target.data.view_as(pred)).sum()
         test_steps+=1
 
@@ -127,13 +126,16 @@ def test():
 if torch.cuda.is_available():
     model.cuda()
     print("Using GPU Acceleration")
+else:
+    print("Not Using GPU Acceleration")
 
 
-'''Train and Test Our Model'''
+'''Train and test our model'''
 for epoch in range(epochs):
     train(epoch)
     if epoch % 2 == 0 and epoch != 0:
         with torch.no_grad():
             test()
 
-test()
+with torch.no_grad():
+    test()
