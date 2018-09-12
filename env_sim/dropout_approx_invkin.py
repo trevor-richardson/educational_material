@@ -78,7 +78,6 @@ rotate_rte_0 = 0
 rotate_rte_1 = 0
 
 mouse_state_bool = True
-save_iterator = 2
 
 lst_theta0 = []
 lst_theta1 = []
@@ -89,21 +88,25 @@ basicfont = pygame.font.SysFont(None, 38)
 '''Main Script Logic'''
 while True:
     display.fill(white)
-    mouse_state = pygame.mouse.get_pressed()
 
+    #Check if mouse is pressed and add location to sprites list if it is pressed
+    mouse_state = pygame.mouse.get_pressed()
     if mouse_state[0] == 1:
         sprites.append(pygame.mouse.get_pos())
         sprites = helpers.return_ordered(sprites)
 
+    #If sprites list has elements and the rotation steps aren't equal to zero
+    #Calculate Inv Kinematic solution for the most recent sprite in the sprites list
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0 and mouse_state_bool:
-
+        #Prepare data for neural network
         if torch.cuda.is_available():
             input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - origin[0] + 420)/840, (sprites[0][1] - origin[1] + 420)/840])).float().cuda())
         else:
             input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - origin[0] + 420)/840, (sprites[0][1] - origin[1] + 420)/840])).float())
-        model.train()
+        model.train() #In order to use dropout during inference time
 
         with torch.no_grad():
+            #Collect list of model subnetworks inference results
             for iterator in range(sample_size_drop):
                 theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
 
@@ -113,13 +116,14 @@ while True:
                 lst_theta0.append(theta_0)
                 lst_theta1.append(theta_1)
 
+        #Plot uncertainty_graphs
         if 'uncertainty_graphs' in locals():
             plt.clf()
-
         uncertainty_graphs = helpers.make_uncertainty_plots(sorted(lst_theta0[:-1]), sorted(lst_theta1[:-1]), lst_theta0[-1], lst_theta1[-1])
         del(lst_theta0[:])
         del(lst_theta1[:])
 
+        #Inference model using all connections and calc rotation for upper arm and lower arm
         model.eval()
         theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
 
@@ -139,23 +143,28 @@ while True:
         num_steps_1, rotate_rte_1 = helpers.calc_rot(cur_radians_1, theta_add)
         mouse_state_bool = False
 
+
+    #Rotate upper and lower arm
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
         fa_image, fa_rect = lowerarm.rotate(0.0)
         num_steps_0 +=-1
 
+    #Rotate lower arm
     elif num_steps_1 > 0 and num_steps_0 == 0:
         fa_image, fa_rect = lowerarm.rotate(rotate_rte_1)
         ua_image, ua_rect = upperarm.rotate(0.0)
         num_steps_1 += -1
 
+    #Rotate upper arm
     elif num_steps_0 > 0 and num_steps_1 > 0:
         fa_image, fa_rect = lowerarm.rotate(rotate_rte_1)
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
         num_steps_0 += -1
         num_steps_1 += -1
 
-    if num_steps_1 == 0 and num_steps_0 == 0: #first edit in order to stabalize trajectory for python2 support
+    #Arm has reached end point, pop sprite from sprites list
+    if num_steps_1 == 0 and num_steps_0 == 0:
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
         mouse_state_bool = True
@@ -163,6 +172,7 @@ while True:
         if len(sprites) > 0:
             sprites.pop(0)
 
+    #Update location of joints
     joints_x = np.cumsum([0,
                           upperarm.scale * np.cos(upperarm.rot_angle),
                           lowerarm.scale * np.cos(lowerarm.rot_angle)]) + origin[0]
@@ -172,22 +182,27 @@ while True:
 
     joints = [(int(x), int(y)) for x,y in zip(joints_x, joints_y)]
 
+    #Reposition upper arm and lower arm
     helpers.transform(ua_rect, joints[0], upperarm)
     helpers.transform(fa_rect, joints[1], lowerarm)
 
+    #Draw uncertainty graphs
     if 'uncertainty_graphs' in locals():
         display.blit(uncertainty_graphs, (1020,250))
 
+    #Draw sprites on screen
     for sprite in sprites:
         pygame.draw.circle(display, red, sprite, 4)
 
+    #Draw upper and lower arm
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
+    #Get current location of arm parts
     cur_radians_0 = helpers.print_angle(ua_rect.center[0], ua_rect.center[1], (origin[0], origin[1]))
     cur_radians_1 = helpers.print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
-    '''View text above my graphs'''
+    #Display text on uncertainty graphs
     text = basicfont.render('Model Uncertainty Graph', True, (0, 0, 0), (255, 255, 255))
     textrect = text.get_rect()
     textrect[0]+= 1195
@@ -199,6 +214,7 @@ while True:
     textrect2[1]+=225
     display.blit(text2, textrect2)
 
+    #Check for quit
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
             pygame.quit()
