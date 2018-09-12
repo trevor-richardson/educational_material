@@ -11,6 +11,7 @@ from torch.autograd import Variable
 import numpy as np
 import sys
 import os
+from neural_network import FullyConnectedNetwork
 
 #network model
 '''global variables'''
@@ -24,38 +25,9 @@ hidden_neurons = [40, 40, 40, 40,output_shape]
 
 #load the numpy array
 dir_path = os.path.dirname(os.path.realpath('inv_kin_closed_form_arm.py'))
-
 normalize_data_bool = True
 
-'''Simple Regression FCN Model'''
-class FullyConnectedNetwork(nn.Module):
-    def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
-        super(FullyConnectedNetwork, self).__init__()
-
-        self.h_0 = nn.Linear(input_dim, num_hidden_neurons[0])
-        self.h_1 = nn.Linear(num_hidden_neurons[0], num_hidden_neurons[1])
-        self.h_2 = nn.Linear(num_hidden_neurons[1], num_hidden_neurons[2])
-        self.h_3 = nn.Linear(num_hidden_neurons[2], num_hidden_neurons[3])
-        self.h_4 = nn.Linear(num_hidden_neurons[3], num_hidden_neurons[4])
-
-        self.drop = nn.Dropout(dropout_rte)
-
-    def forward(self, x):
-
-        out_0 = F.tanh(self.h_0(x))
-        out_0 = self.drop(out_0)
-
-        out_1 = F.tanh(self.h_1(out_0))
-        out_1 = self.drop(out_1)
-
-        out_2 = F.tanh(self.h_2(out_1))
-        out_2 = self.drop(out_2)
-
-        out_3 = F.tanh(self.h_3(out_2))
-
-        out = self.h_4(out_3)
-        return out
-
+'''Initialize Neural Network Model'''
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -77,7 +49,7 @@ def normalize(arr, normalize_type):
             arr[i] = (arr[i]- (-420)) / (840)
         return arr
 
-'''train'''
+'''Train'''
 def train_model(epoch, data, label):
     global model
     global optimizer
@@ -110,7 +82,7 @@ def train_model(epoch, data, label):
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
         epoch, train_loss.cpu().numpy()/train_step_counter))
 
-'''test'''
+'''Test'''
 def test_model(data, label):
     global model
     batch_sz = 2056
@@ -139,18 +111,16 @@ def test_model(data, label):
         test_loss/test_steps))
     return (test_loss/test_steps)
 
-'''Create model'''
+'''Move Model to GPU if Cuda'''
 if torch.cuda.is_available():
     model.cuda()
     print("Using GPU Acceleration")
 else:
-    print("not using gpu acceleration")
+    print("Not Using GPU Acceleration")
 
 '''Load data'''
 train = np.load(dir_path + '/data/inv_kin_aprox/train.npy')
-
 test = np.load(dir_path + '/data/inv_kin_aprox/test.npy')
-
 best_loss = float(sys.maxsize)
 
 if normalize_data_bool:
@@ -184,4 +154,4 @@ for epoch in range(epochs):
 with torch.no_grad():
     test_model(test_data, test_label)
 
-print("best loss", best_loss)
+print("Best loss", best_loss)
