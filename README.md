@@ -48,7 +48,7 @@ Neural networks and their performance on the MNIST dataset.
 ```
 3) Fully connected network that utilizes stochastic forward passes
 ```
-  python sfp_fcn.py 
+  python sfp_fcn.py
 ```
 
 
@@ -57,7 +57,6 @@ Neural networks and their performance on the MNIST dataset.
 Packages needed to run the code
 * numpy
 * scipy
-* python3
 * pytorch
 * matplotlib
 * pygame

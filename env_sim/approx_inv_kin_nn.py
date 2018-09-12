@@ -9,19 +9,19 @@ import contextlib
 with contextlib.redirect_stdout(None):
     import pygame
 import pygame.locals
-
 import sys
 import os
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from arm_part import ArmPart
+from robot_arm.arm_part import ArmPart
+import helpers
 
-'''My simple feed forward neural network model'''
-'''Simple Regression FCN Model'''
+
+'''Simple Regression FCN Model
+Define Model and Initialize Model'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
         super(FullyConnectedNetwork, self).__init__()
@@ -35,8 +35,6 @@ class FullyConnectedNetwork(nn.Module):
         self.drop = nn.Dropout(dropout_rte)
 
     def forward(self, x):
-        # x = self.drop(x)
-
         out_0 = F.tanh(self.h_0(x))
         out_0 = self.drop(out_0)
 
@@ -62,11 +60,14 @@ model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 load_model(model)
 
 if torch.cuda.is_available():
-    print("Using GPU acceleration")
     model.cuda()
+    print("Using GPU Acceleration")
+else:
+    print("Not Using GPU Acceleration")
+model.eval() #Model has been previously been trained. Set model to eval mode to use all connections
 
-model.eval()
 
+'''Define Pygame Parameters'''
 black = (0, 0, 0)
 gold = (255, 215, 0)
 red = (255, 0, 0)
@@ -82,8 +83,8 @@ frame_clock = pygame.time.Clock()
 
 origin = (width / 2.0, height / 2.0)
 
-upperarm = ArmPart('upperarm.png', scale=.8)
-lowerarm = ArmPart('lowerarm.png', scale=.9)
+upperarm = ArmPart('./robot_arm/upperarm.png', scale=.8)
+lowerarm = ArmPart('./robot_arm/lowerarm.png', scale=.9)
 
 sprites = []
 num_steps_0 = 0
@@ -98,83 +99,15 @@ mouse_bool = False
 save_data_bool = True
 save_iterator = 2
 
-def convert_normal_angle(t_0, t_1):
-    if t_0 < 0:
-        t_0 = 2* np.pi + t_0
-    if t_1 < 0:
-        t_1 = 2* np.pi + t_1
 
-    return t_0, t_1
-
-def calc_rot(rad_current, rad_desired):
-    #this is how many radians I need to move in total
-    desired_transform = rad_desired - rad_current
-    oneeighty = np.radians(180)
-    #This is to make sure the direction I am turning is the most efficient way to turn
-    if desired_transform < 0:
-        if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = 1 * np.radians(1) #1 degree per frame
-        else:
-            rotation_rte = -np.radians(1) #1 degree per frame
-    else:
-        if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
-            rotation_rte = -np.radians(1)
-        else:
-            rotation_rte = 1* np.radians(1) #1 degree per frame
-
-    #Number of steps moving at the specified rate
-    desired_transform = (abs(desired_transform))
-    if desired_transform > (np.pi):
-        desired_transform = 2*np.pi - desired_transform
-
-    num_steps = desired_transform / rotation_rte
-    return int(abs(num_steps)), rotation_rte
-
-def transform(rect, container, part):
-    rect.center += np.asarray(container)
-    rect.center += np.array([np.cos(part.rot_angle) * part.offset,
-    -np.sin(part.rot_angle) * part.offset])
-
-def print_angle(x, y, origin):
-    if x <= origin[0] and y <= origin[1]:
-        opposite = origin[1] - y
-        adjacent = origin[0] - x
-        if adjacent == 0.0:
-            adjacent = .0001
-        degree = np.degrees(np.arctan(opposite/adjacent)) + 180
-    elif x <= origin[0] and y >= origin[1]:
-        opposite = origin[0] - x
-        adjacent = y - origin[1]
-        if adjacent == 0:
-            adjacent = .0001
-        degree = np.degrees(np.arctan(opposite/adjacent)) + 90
-    elif x >= origin[0] and y <= origin[1]:
-        opposite = x - origin[0]
-        adjacent = origin[1] - y
-        if adjacent == 0:
-            adjacent = .0001
-        degree = np.degrees(np.arctan(opposite/adjacent)) + 270
-    else:
-        adjacent = x - origin[0]
-        opposite = y - origin[1]
-        if adjacent == 0:
-            adjacent = .0001
-        degree = np.degrees(np.arctan(opposite/adjacent))
-
-    return np.radians(degree)
-
-def return_ordered(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
-
+'''Main Script Logic'''
 while 1:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 
     if mouse_state[0] == 1:
         sprites.append(pygame.mouse.get_pos())
-        sprites = return_ordered(sprites)
+        sprites = helpers.return_ordered(sprites)
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
         if torch.cuda.is_available():
@@ -187,15 +120,15 @@ while 1:
 
         theta_0 = np.arctan2(theta_0_sin.item(), theta_0_cos.item())
         theta_1 = np.arctan2(theta_1_sin.item(), theta_1_cos.item())
-        theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+        theta_0, theta_1 = helpers.convert_normal_angle(theta_0, theta_1)
 
         if (sprites[0][0] >=0):
             theta_add = (theta_1 + theta_0)% (2 * np.pi)
         else:
             theta_add = (theta_1 - theta_0)% (2 * np.pi)
 
-        num_steps_0, rotate_rte_0 = calc_rot(cur_radians_0, theta_0)
-        num_steps_1, rotate_rte_1 = calc_rot(cur_radians_1, theta_add)
+        num_steps_0, rotate_rte_0 = helpers.calc_rot(cur_radians_0, theta_0)
+        num_steps_1, rotate_rte_1 = helpers.calc_rot(cur_radians_1, theta_add)
 
     if num_steps_0 > 0 and num_steps_1 == 0:
         ua_image, ua_rect = upperarm.rotate(rotate_rte_0)
@@ -213,7 +146,7 @@ while 1:
         num_steps_0 += -1
         num_steps_1 += -1
 
-    if num_steps_1 == 0 and num_steps_0 == 0: #first edit in order to stabalize trajectory for python2 support
+    if num_steps_1 == 0 and num_steps_0 == 0:
         fa_image, fa_rect = lowerarm.rotate(0.000)
         ua_image, ua_rect = upperarm.rotate(0.000)
 
@@ -232,16 +165,16 @@ while 1:
     for sprite in sprites:
         pygame.draw.circle(display, red, sprite, 4)
 
-    transform(ua_rect, joints[0], upperarm)
-    transform(fa_rect, joints[1], lowerarm)
+    helpers.transform(ua_rect, joints[0], upperarm)
+    helpers.transform(fa_rect, joints[1], lowerarm)
 
     display.blit(ua_image, ua_rect)
     display.blit(fa_image, fa_rect)
 
-    cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
-    cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
+    cur_radians_0 = helpers.print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
+    cur_radians_1 = helpers.print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
-    # check for quit
+    #Check for quit
     for event in pygame.event.get():
         if event.type == pygame.locals.QUIT:
             pygame.quit()

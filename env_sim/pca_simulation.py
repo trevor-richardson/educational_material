@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from arm_part import ArmPart
+from robot_arm.arm_part import ArmPart
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -32,8 +32,8 @@ height = 1000
 display = pygame.display.set_mode((width, height))
 frame_clock = pygame.time.Clock()
 
-upperarm = ArmPart('upperarm.png', scale=.8)
-lowerarm = ArmPart('lowerarm.png', scale=.9)
+upperarm = ArmPart('./robot_arm/upperarm.png', scale=.8)
+lowerarm = ArmPart('./robot_arm/lowerarm.png', scale=.9)
 
 origin = (width / 2.0, height / 2.0)
 
