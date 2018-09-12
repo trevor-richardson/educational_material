@@ -26,13 +26,9 @@ from robot_arm.arm_part import ArmPart
 import helpers
 from neural_network import FullyConnectedNetwork
 
-'''Simple Regression FCN Model'''
-'''Define and Initialize Model'''
 
 
-def load_model(model):
-    return model.load_state_dict(torch.load('./saved_models/deterministicmodel.pth'))
-
+'''Global Variables'''
 learning_rate = .0001
 sample_size_drop = 60
 input_shape = 2
@@ -42,6 +38,9 @@ hidden_neurons = [40, 40, 40, 40,output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+def load_model(model):
+    return model.load_state_dict(torch.load('./saved_models/deterministicmodel.pth'))
+
 load_model(model)
 if torch.cuda.is_available():
     model.cuda()
@@ -49,8 +48,6 @@ if torch.cuda.is_available():
 else:
     print("Not Using GPU Acceleration")
 
-
-'''Pygame Parameters'''
 black = (0, 0, 0)
 gold = (255, 215, 0)
 red = (255, 0, 0)
@@ -90,7 +87,7 @@ basicfont = pygame.font.SysFont(None, 38)
 
 
 '''Main Script Logic'''
-while 1:
+while True:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 

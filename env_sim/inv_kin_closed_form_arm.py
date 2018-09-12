@@ -4,7 +4,6 @@ import contextlib
 with contextlib.redirect_stdout(None):
     import pygame
 import pygame.locals
-
 import numpy as np
 import pygame
 import sys
@@ -12,15 +11,12 @@ import os
 from robot_arm.arm_part import ArmPart
 import helpers
 
-'''
-PyGame Global Variables
-'''
+'''Global Variables'''
 black = (0, 0, 0)
 gold = (255, 215, 0)
 red = (255, 0, 0)
 white = (255, 255, 255)
 linkage_color = (128, 0, 0, 200) # fourth value specifies transparency
-
 pygame.init()
 pygame.display.set_caption('Inverse Kinematics Closed Form Solution')
 width = 1000
@@ -45,8 +41,8 @@ rotate_rte_1 = 0
 mouse_bool = False
 hand_offset = 35
 
-
-while 1:
+'''Main Script Logic'''
+while True:
     display.fill(white)
     mouse_state = pygame.mouse.get_pressed()
 

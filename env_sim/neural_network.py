@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+'''Feed Forward Neural Network For Regression'''
 class FullyConnectedNetwork(nn.Module):
     def __init__(self, input_dim, num_hidden_neurons, dropout_rte):
         super(FullyConnectedNetwork, self).__init__()

@@ -24,14 +24,15 @@ from neural_network import FullyConnectedNetwork
 '''Simple Regression FCN Model
 Define Model and Initialize Model'''
 
-def load_model(model):
-    return model.load_state_dict(torch.load('./saved_models/deterministicmodel.pth'))
-
+#Global Variables
 input_shape = 2
 output_shape = 4
 drop_rte = 0.1
 hidden_neurons = [40, 40, 40, 40,output_shape]
 model = FullyConnectedNetwork(input_shape, hidden_neurons, drop_rte)
+
+def load_model(model):
+    return model.load_state_dict(torch.load('./saved_models/deterministicmodel.pth'))
 load_model(model)
 
 if torch.cuda.is_available():
@@ -41,8 +42,6 @@ else:
     print("Not Using GPU Acceleration")
 model.eval() #Model has been previously been trained. Set model to eval mode to use all connections
 
-
-'''Define Pygame Parameters'''
 black = (0, 0, 0)
 gold = (255, 215, 0)
 red = (255, 0, 0)
