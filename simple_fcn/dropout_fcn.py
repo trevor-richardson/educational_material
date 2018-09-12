@@ -1,6 +1,7 @@
 '''
 The following is a fully connected network that utilizes dropout
 '''
+from __future__ import division
 
 import torch
 import torch.nn as nn
@@ -9,6 +10,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 import numpy as np
+
 
 
 '''global variables'''
@@ -95,7 +97,7 @@ def train(epoch):
         optimizer.step()
 
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
-        epoch, train_loss.cpu().numpy()[0]/train_step_counter))
+        epoch, train_loss.cpu().numpy()/train_step_counter))
 
 
 

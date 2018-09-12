@@ -1,4 +1,5 @@
 '''The following is an example fully connected neural network that uses stochastic forward passes at inference time '''
+from __future__ import division
 
 import torch
 import torch.nn as nn
@@ -9,13 +10,15 @@ from torch.autograd import Variable
 import numpy as np
 
 
+
+
 '''global variables'''
 batch_sz = 64
 epochs = 100
 learning_rate = .0001
 input_shape = 784
 output_shape = 10
-drop_rte = .4
+drop_rte = .1
 hidden_neurons = [250, 75, output_shape] #Depending on the number of layers in your nueral network this is the number of neurons for hidden at layer x
 num_stoch_passes = 1000
 
@@ -89,8 +92,9 @@ def train(epoch):
         loss.backward()
         optimizer.step()
 
+
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
-        epoch, train_loss.cpu().numpy()[0]/train_step_counter))
+        epoch, train_loss.cpu().numpy()/train_step_counter))
 
 
 

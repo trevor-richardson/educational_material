@@ -1,6 +1,7 @@
 '''
 The following is a fully connected network that learns how to predict a specific mnist number
 '''
+from __future__ import division
 
 import torch
 import torch.nn as nn
@@ -9,6 +10,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 import numpy as np
+
+
 
 '''global variables'''
 batch_sz = 64
@@ -87,7 +90,7 @@ def train(epoch):
         optimizer.step()
 
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
-        epoch, train_loss.cpu().numpy()[0]/train_step_counter))
+        epoch, train_loss.cpu().numpy()/train_step_counter))
 
 
 
