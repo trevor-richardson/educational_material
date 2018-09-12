@@ -5,7 +5,9 @@ closed form solution given by 2 axis inv kin
 from __future__ import division
 
 import numpy as np
-import pygame
+import contextlib
+with contextlib.redirect_stdout(None):
+    import pygame
 import pygame.locals
 
 import sys
@@ -176,13 +178,15 @@ while 1:
 
     if len(sprites) > 0 and num_steps_0 == 0 and num_steps_1 == 0:
         if torch.cuda.is_available():
-            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - 500.0 + 420)/840, (sprites[0][1] - 500.0 + 420)/840])).float().cuda(), volatile=True)
+            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - 500.0 + 420)/840, (sprites[0][1] - 500.0 + 420)/840])).float().cuda())
         else:
-            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - 500.0 + 420)/840, (sprites[0][1] - 500.0 + 420)/840])).float(), volatile=True)
-        theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
+            input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - 500.0 + 420)/840, (sprites[0][1] - 500.0 + 420)/840])).float())
 
-        theta_0 = np.arctan2(theta_0_sin.data[0], theta_0_cos.data[0])
-        theta_1 = np.arctan2(theta_1_sin.data[0], theta_1_cos.data[0])
+        with torch.no_grad():
+            theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
+
+        theta_0 = np.arctan2(theta_0_sin.item(), theta_0_cos.item())
+        theta_1 = np.arctan2(theta_1_sin.item(), theta_1_cos.item())
         theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
 
         if (sprites[0][0] >=0):

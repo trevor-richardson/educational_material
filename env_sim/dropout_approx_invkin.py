@@ -13,7 +13,9 @@ import pylab
 import warnings
 warnings.filterwarnings("ignore")
 
-import pygame
+import contextlib
+with contextlib.redirect_stdout(None):
+    import pygame
 import pygame.locals
 
 import sys
@@ -106,6 +108,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 load_model(model)
 if torch.cuda.is_available():
     model.cuda()
+    print("Using GPU Acceleration")
 
 black = (0, 0, 0)
 gold = (255, 215, 0)
@@ -237,15 +240,16 @@ while 1:
             input_to_model = Variable(torch.from_numpy(np.asarray([(sprites[0][0] - origin[0] + 420)/840, (sprites[0][1] - origin[1] + 420)/840])).float())
         model.train()
 
-        for iterator in range(sample_size_drop):
-            theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
+        with torch.no_grad():
+            for iterator in range(sample_size_drop):
+                theta_0_sin, theta_0_cos, theta_1_sin, theta_1_cos = model.forward(input_to_model)
 
-            theta_0 = np.arctan2(theta_0_sin.data[0], theta_0_cos.data[0])
-            theta_1 = np.arctan2(theta_1_sin.data[0], theta_1_cos.data[0])
-            theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
-            lst_theta0.append(theta_0)
-            lst_theta1.append(theta_1)
-        optimizer.zero_grad() #dont want to store gradients
+                theta_0 = np.arctan2(theta_0_sin.item(), theta_0_cos.item())
+                theta_1 = np.arctan2(theta_1_sin.item(), theta_1_cos.item())
+                theta_0, theta_1 = convert_normal_angle(theta_0, theta_1)
+                lst_theta0.append(theta_0)
+                lst_theta1.append(theta_1)
+
 
         if 'uncertainty_graphs' in locals():
             plt.clf()

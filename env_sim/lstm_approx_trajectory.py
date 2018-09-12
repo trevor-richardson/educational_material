@@ -1,7 +1,9 @@
 from __future__ import division
 
 import numpy as np
-import pygame
+import contextlib
+with contextlib.redirect_stdout(None):
+    import pygame
 import pygame.locals
 
 import numpy as np
@@ -246,17 +248,19 @@ while 1:
         else:
             #prepare data for model
             input_data = np.asarray([(goal_pos[0] -500 + 420) / 840, (goal_pos[1] -500 + 420) / 840, (current_endeff_pos[0] -500 + 420) / 840, (current_endeff_pos[1] -500 + 420) / 840])
+            input_data = input_data[None, :]
             if torch.cuda.is_available():
-                data = Variable(torch.from_numpy(input_data).float().cuda(), volatile=True)
+                data = Variable(torch.from_numpy(input_data).float().cuda())
             else:
-                data = Variable(torch.from_numpy(input_data).float(), volatile=True)
+                data = Variable(torch.from_numpy(input_data).float())
 
-            output, states = model.forward(data, states)
-
-            theta_0_sin = output.data[0][0]
-            theta_0_cos = output.data[0][1]
-            theta_1_sin = output.data[0][2]
-            theta_1_cos = output.data[0][3]
+            with torch.no_grad():
+                output, states = model.forward(data, states)
+            _dat = output.cpu().numpy()[0]
+            theta_0_sin = _dat[0]
+            theta_0_cos = _dat[1]
+            theta_1_sin = _dat[2]
+            theta_1_cos = _dat[3]
 
             theta_0 = np.arctan2(theta_0_sin, theta_0_cos)
             theta_1 = np.arctan2(theta_1_sin, theta_1_cos)
@@ -320,7 +324,6 @@ while 1:
 
 
     cur_radians_0 = print_angle(ua_rect.center[0], ua_rect.center[1], (500, 500))
-
     cur_radians_1 = print_angle(fa_rect.center[0], fa_rect.center[1], (joints[1][0], joints[1][1]))
 
 

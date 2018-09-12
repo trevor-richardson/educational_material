@@ -43,8 +43,6 @@ train_label = trn[:,:,4:]
 test_data = tet[:,:,:4]
 test_label = tet[:,:,4:]
 
-print("max min", np.max(train_data), np.min(train_data), np.max(train_label), np.min(train_label))
-print("max min", np.max(test_data), np.min(test_data), np.max(test_label), np.min(test_label))
 
 '''Set up model'''
 class ClassicalLSTM(nn.Module):
@@ -55,14 +53,12 @@ class ClassicalLSTM(nn.Module):
         self.lstm_2 = nn.LSTMCell(hidden1_sz, hidden2_sz)
         self.fcn1 = nn.Linear(hidden2_sz, output_sz)
 
-        # self.drop = nn.Dropout(.3)
 
 
     def forward(self, x, states):
         hx_0, cx_0 = self.lstm_0(x, states[0])
         hx_1, cx_1 = self.lstm_1(hx_0, states[1])
         hx_2, cx_2 = self.lstm_2(hx_1, states[2])
-        # hx_2 = self.drop(hx_2)
         x = self.fcn1(hx_2)
         return x, [[hx_0, cx_0], [hx_1, cx_1], [hx_2, cx_2]]
 
@@ -105,9 +101,8 @@ def train_model(epoch):
     global hidden0_sz
     global hidden1_sz
 
-    model.eval()
-    test_loss = 0
-    test_step_counter = 0
+    model.train()
+    train_step_counter = 0
     prev0 = create_lstm_states(hidden0_sz,int(test_data.shape[1]))
     prev1 = create_lstm_states(hidden1_sz, int(test_data.shape[1]))
     prev2 = create_lstm_states(hidden2_sz, int(test_data.shape[1]))
@@ -132,6 +127,7 @@ def train_model(epoch):
     pred = torch.cat(predicted_list)
     y_ = torch.cat(y_list).float()
     loss = F.mse_loss(pred, y_)
+    train_step_counter+=1
 
     loss.backward()
     optimizer.step()
@@ -141,7 +137,7 @@ def train_model(epoch):
     del(y_list[:])
 
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
-        epoch, train_loss.cpu().numpy()[0]))
+        epoch, train_loss.cpu().numpy()/train_step_counter))
 
 
 '''Test Model'''
@@ -153,10 +149,8 @@ def test_model():
     global hidden0_sz
     global hidden1_sz
 
-    model.train()
+    model.eval()
     optimizer.zero_grad()
-    train_loss = 0
-    train_step_counter = 0
     prev0 = create_lstm_states(hidden0_sz,int(train_data.shape[1] ))
     prev1 = create_lstm_states(hidden1_sz, int(train_data.shape[1]))
     prev2 = create_lstm_states(hidden2_sz, int(train_data.shape[1]))
@@ -166,17 +160,15 @@ def test_model():
 
     for step_idx in range(int(train_data.shape[0])):
         if torch.cuda.is_available():
-            data = Variable(torch.from_numpy(np.squeeze(train_data[step_idx:(step_idx + 1)])).float().cuda(),
-                volatile=True)
+            data = Variable(torch.from_numpy(np.squeeze(train_data[step_idx:(step_idx + 1)])).float().cuda())
             label = Variable(torch.from_numpy(np.squeeze(train_label[step_idx:(step_idx + 1)])).float().cuda())
         else:
-            data = Variable(torch.from_numpy(np.squeeze(train_data[step_idx:(step_idx + 1)])).float(),
-                volatile=True)
+            data = Variable(torch.from_numpy(np.squeeze(train_data[step_idx:(step_idx + 1)])).float())
             label = Variable(torch.from_numpy(np.squeeze(train_label[step_idx:(step_idx + 1)])).float())
 
 
         output, states = model(data, states)
-        test_loss += F.mse_loss(output, label).data[0] # sum up batch loss
+        test_loss += F.mse_loss(output, label).item() # sum up batch loss
 
         test_steps+=1
 
@@ -196,12 +188,14 @@ def main():
     for epoch in range(epochs):
         train_model(epoch)
         if epoch % 1 == 0 and epoch != 0:
-            current_loss = test_model()
+            with torch.no_grad():
+                current_loss = test_model()
             if current_loss < best_loss:
                 best_loss = current_loss
-                save_model(model)
+                # save_model(model)
 
-    test_model()
+    with torch.no_grad():
+        test_model()
 
     print("best loss", best_loss)
     print("Data")

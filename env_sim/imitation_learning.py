@@ -1,7 +1,9 @@
 from __future__ import division
 
 import numpy as np
-import pygame
+import contextlib
+with contextlib.redirect_stdout(None):
+    import pygame
 import pygame.locals
 import sys
 import os

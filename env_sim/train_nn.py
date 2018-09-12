@@ -108,7 +108,7 @@ def train_model(epoch, data, label):
         optimizer.step()
 
     print('Train Epoch: {} \tLoss: {:.6f}'.format(
-        epoch, train_loss.cpu().numpy()[0]/train_step_counter))
+        epoch, train_loss.cpu().numpy()/train_step_counter))
 
 '''test'''
 def test_model(data, label):
@@ -123,17 +123,15 @@ def test_model(data, label):
 
     for batch_idx in range(int(data.shape[0]/batch_sz)):
         if torch.cuda.is_available():
-            data_batch = Variable(torch.from_numpy(data[batch_idx*batch_sz:(batch_idx + 1)*batch_sz]).float().cuda(),
-                volatile=True)
+            data_batch = Variable(torch.from_numpy(data[batch_idx*batch_sz:(batch_idx + 1)*batch_sz]).float().cuda())
             label_batch = Variable(torch.from_numpy(label[batch_idx*batch_sz:(batch_idx + 1)*batch_sz]).float().cuda())
         else:
-            data_batch = Variable(torch.from_numpy(data[batch_idx*batch_sz:(batch_idx + 1)*batch_sz]).float(),
-                volatile=True)
+            data_batch = Variable(torch.from_numpy(data[batch_idx*batch_sz:(batch_idx + 1)*batch_sz]).float())
             label_batch = Variable(torch.from_numpy(label[batch_idx*batch_sz:(batch_idx + 1)*batch_sz]).float())
 
         output = model(data_batch)
 
-        test_loss += mseloss(output, label_batch).data[0] # sum up batch loss
+        test_loss += mseloss(output, label_batch).item() # sum up batch loss
 
         test_steps+=1
 
@@ -179,10 +177,13 @@ for epoch in range(epochs):
 
     train_model(epoch, data, label)
     if epoch % 1 == 0 and epoch != 0:
-        current_loss = test_model(test_data, test_label)
+        with torch.no_grad():
+            current_loss = test_model(test_data, test_label)
         if current_loss < best_loss:
             best_loss = current_loss
             save_model(model)
 
-test_model(test_data, test_label)
+with torch.no_grad():
+    test_model(test_data, test_label)
+
 print("best loss", best_loss)
