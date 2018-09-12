@@ -11,7 +11,6 @@ import numpy as np
 
 
 
-
 '''global variables'''
 batch_sz = 64
 epochs = 100
@@ -116,7 +115,7 @@ def test():
         if torch.cuda.is_available():
             data, target = data.cuda(), target.cuda()
         #setting volatile to true makes the inference step faster because no gradient information is saved
-        data, target = Variable(data, volatile=True), Variable(target)
+        data, target = Variable(data), Variable(target)
         for iteration in range(num_stoch_passes):
 
             output = model(data)
@@ -139,7 +138,8 @@ if torch.cuda.is_available():
 for epoch in range(epochs):
     train(epoch)
     if epoch % 5 == 0 and epoch != 0:
-        test()
+        with torch.no_grad():
+            test()
 
 
 test()
