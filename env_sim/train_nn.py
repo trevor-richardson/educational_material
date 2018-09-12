@@ -148,10 +148,8 @@ else:
 
 '''Load data'''
 train = np.load(dir_path + '/data/inv_kin_aprox/train.npy')
-# train = train.astype('float64')
 
 test = np.load(dir_path + '/data/inv_kin_aprox/test.npy')
-# test = test.astype('float64')
 
 best_loss = float(sys.maxsize)
 
