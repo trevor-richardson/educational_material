@@ -20,7 +20,7 @@ learning_rate = .0001
 input_shape = 784
 output_shape = 10
 drop_rte = .4
-hidden_neurons = [250, 75, output_shape] #Depending on the number of layers in your nueral network this is the number of neurons for your output layer
+hidden_neurons = [250, 75, output_shape] #Define number of neurons in each layer
 
 
 '''Data loader for MNIST'''
