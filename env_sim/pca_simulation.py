@@ -53,6 +53,34 @@ def calculate_pca(data, k=2):
 
 basicfont = pygame.font.SysFont(None, 48)
 
+half_circle_bool = False
+current_state = 0
+trajectories_to_collect = 0 #This will collect one trajectory
+joint_data = []
+lamda = 0
+
+def rot_it(rad_current, rad_desired):
+    #this is how many radians I need to move in total
+    desired_transform = rad_desired - rad_current
+    oneeighty = 180/57.2958
+
+    #This is to make sure the direction I am turning is the most efficient way to turn
+    if desired_transform < 0:
+        if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
+            rotation_rte = 1 #1 degree per frame
+        else:
+            rotation_rte = -1 #1 degree per frame
+    else:
+        if abs(desired_transform) <= oneeighty: #Decide whether to turn clockwise or counter clockwise
+            rotation_rte = -1
+        else:
+            rotation_rte = 1 #1 degree per frame
+
+    desired_transform = (abs(desired_transform))
+    if desired_transform > (np.pi):
+        desired_transform = 2*np.pi - desired_transform
+
+    return 1, rotation_rte * desired_transform
 
 '''Main Script Logic'''
 while True:
@@ -122,8 +150,8 @@ while True:
         theta_0 = m_0 + lamda * pc[0][0]
         theta_add = m_1 + lamda * pc[0][1]
 
-        num_steps_0, rotate_rte_0 = helpers.calc_rot(cur_radians_0, theta_0)
-        num_steps_1, rotate_rte_1 = helpers.calc_rot(cur_radians_1, theta_add)
+        num_steps_0, rotate_rte_0 = rot_it(cur_radians_0, theta_0)
+        num_steps_1, rotate_rte_1 = rot_it(cur_radians_1, theta_add)
         lamda += .05
 
     #Rotate upper arm
