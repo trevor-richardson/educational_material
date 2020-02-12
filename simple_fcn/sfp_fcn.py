@@ -25,7 +25,7 @@ num_stoch_passes = 1000
 '''Data loader for MNIST'''
 kwargs = {'num_workers': 2, 'pin_memory': True} if torch.cuda.is_available() else {}
 train_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=True, download=True,
+    datasets.MNIST('../data', train=True, download=False,
                    transform=transforms.Compose([
                        transforms.ToTensor()
                    ])),
